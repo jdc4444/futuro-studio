@@ -51,8 +51,7 @@
     .futuro-resume .gallery-caption { position:absolute; z-index:2; top:.55rem; left:.55rem; padding:.26rem .42rem; background:rgba(5,5,5,.78); color:#f5f5f2; font-size:.58rem; letter-spacing:.075em; line-height:1; text-transform:uppercase; pointer-events:none; }
     .futuro-resume .project-grid { display:grid; grid-template-columns:minmax(14rem,29%) minmax(0,1fr); }
     .futuro-resume .project-heading { padding:clamp(1.3rem,2.2vw,2.5rem) 2rem clamp(2.5rem,5vw,6rem) 0; }
-    .futuro-resume .index { display:flex; justify-content:space-between; gap:1rem; margin-bottom:1rem; color:var(--muted); font-size:.7rem; }
-    .futuro-resume .project-meta { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.35rem; text-align:right; }
+    .futuro-resume .project-meta { display:flex; flex-wrap:wrap; gap:.35rem; margin-bottom:1rem; color:var(--muted); font-size:.7rem; }
     .futuro-resume .project-date { color:var(--paper); font-variant-numeric:tabular-nums; }
     .futuro-resume .project-type { color:var(--paper); }
     .futuro-resume h2 { margin:0; font-size:clamp(2rem,4.2vw,4.9rem); font-weight:500; letter-spacing:-.055em; line-height:.9; overflow-wrap:anywhere; }

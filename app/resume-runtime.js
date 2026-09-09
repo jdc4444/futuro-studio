@@ -953,7 +953,7 @@ export function mountResume(root) {
     }
     function render() {
       teardownMedia();
-      let visible = projects.filter(project => {
+      const visible = projects.filter(project => {
         const hidden = hiddenRoutes.has(project.route);
         const matchesFilter = (currentFilter === "all" && !hidden) ||
           (currentFilter === "director" && !hidden && hasDirectorRole(project)) ||
@@ -964,9 +964,8 @@ export function mountResume(root) {
           (currentFilter === "recognition" && !hidden && hasRecognition(project)) ||
           (currentFilter === "quotes" && !hidden && project.quotes.length > 0);
         return matchesFilter;
-      });
-      list.innerHTML = visible.length ? visible.map((project, visibleIndex) => {
-        const number = String(visibleIndex + 1).padStart(2,"0");
+      }).slice(0,10);
+      list.innerHTML = visible.length ? visible.map(project => {
         const credits = project.credits.length ? `<section class="content-section"><div class="section-label">Credits</div><div class="credit-grid">${project.credits.map(([role,name]) => `<div class="credit"><div class="credit-role">${escapeHTML(role || "Credit")}</div><div class="credit-name">${escapeHTML(name)}</div></div>`).join("")}</div></section>` : "";
         const fields = project.fields.map(field => `<section class="content-section"><div class="section-label">${escapeHTML(field.label)}</div><div class="link-line">${field.links.map(link => `<a href="${escapeHTML(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)}</a>`).join("")}</div></section>`).join("");
         const quotes = project.quotes.length ? `<section class="content-section"><div class="quotes">${project.quotes.map(quote => `<blockquote><p>“${escapeHTML(quote.text)}”</p><footer>${escapeHTML(quote.source)}</footer></blockquote>`).join("")}</div></section>` : "";
@@ -1048,7 +1047,7 @@ export function mountResume(root) {
         const gallery = !galleryItems.length ? "" :
           `<div class="${galleryClass}" aria-label="${escapeHTML(project.title)} verified media">${renderGalleryItems(galleryItems)}</div>`;
         const projectMeta = `<span class="project-meta"><span class="project-type">${escapeHTML(project.projectType)}</span></span>`;
-        return `<article class="project" data-date="${escapeHTML(project.date)}">${media}${gallery}<div class="project-grid"><header class="project-heading"><span class="index"><span>${number} / ${String(visible.length).padStart(2,"0")}</span>${projectMeta}</span><h2>${renderProjectTitle(project.title)}</h2></header><div class="project-body">${credits}${fields}${quotes}</div></div></article>`;
+        return `<article class="project" data-date="${escapeHTML(project.date)}">${media}${gallery}<div class="project-grid"><header class="project-heading">${projectMeta}<h2>${renderProjectTitle(project.title)}</h2></header><div class="project-body">${credits}${fields}${quotes}</div></div></article>`;
       }).join("") : `<div class="empty">No matching projects.</div>`;
       activateMedia();
     }
