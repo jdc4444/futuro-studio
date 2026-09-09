@@ -9,6 +9,13 @@ export function mountResume(root) {
       "/tobias-rees-limn",
       "/maybelline-gigi-whip-it-up",
     ]);
+    const selectedRoutes = new Set([
+      ...projects.filter(project => !hiddenRoutes.has(project.route)).slice(0,10).map(project => project.route),
+      "/celeste-everyday",
+      "/spotify-hip-hop-classics-1",
+      "/ggm-accoustic",
+      "/lovb-launch",
+    ]);
     let mediaObserver;
     let currentFilter = "all";
     let globalSoundEnabled = false;
@@ -954,7 +961,7 @@ export function mountResume(root) {
     function render() {
       teardownMedia();
       const visible = projects.filter(project => {
-        const hidden = hiddenRoutes.has(project.route);
+        const hidden = hiddenRoutes.has(project.route) || !selectedRoutes.has(project.route);
         const matchesFilter = (currentFilter === "all" && !hidden) ||
           (currentFilter === "director" && !hidden && hasDirectorRole(project)) ||
           (currentFilter === "producer" && !hidden && hasProducerRole(project)) ||
@@ -964,7 +971,7 @@ export function mountResume(root) {
           (currentFilter === "recognition" && !hidden && hasRecognition(project)) ||
           (currentFilter === "quotes" && !hidden && project.quotes.length > 0);
         return matchesFilter;
-      }).slice(0,10);
+      });
       list.innerHTML = visible.length ? visible.map(project => {
         const credits = project.credits.length ? `<section class="content-section"><div class="section-label">Credits</div><div class="credit-grid">${project.credits.map(([role,name]) => `<div class="credit"><div class="credit-role">${escapeHTML(role || "Credit")}</div><div class="credit-name">${escapeHTML(name)}</div></div>`).join("")}</div></section>` : "";
         const fields = project.fields.map(field => `<section class="content-section"><div class="section-label">${escapeHTML(field.label)}</div><div class="link-line">${field.links.map(link => `<a href="${escapeHTML(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)}</a>`).join("")}</div></section>`).join("");
