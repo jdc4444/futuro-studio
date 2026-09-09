@@ -154,9 +154,9 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     panel.querySelectorAll('video').forEach(video=>video.pause());
     let cancelled=false;
     const fold=panel.animate([
-      {clipPath:'inset(0 0 0 0)',transform:'translateY(0)',opacity:1},
-      {clipPath:'inset(0 0 100% 0)',transform:'translateY(-24px)',opacity:.65},
-    ],{duration:440,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+      {clipPath:'inset(0 0 0 0)'},
+      {clipPath:'inset(0 0 100% 0)'},
+    ],{duration:440,easing:'cubic-bezier(.65,0,.35,1)',fill:'forwards'});
     fold.finished.then(()=>{if(!cancelled)finishClose(closing.target);}).catch(()=>{});
     return()=>{cancelled=true;fold.cancel();};
   },[closing]);
@@ -200,9 +200,9 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     const deadline=setTimeout(complete,520);
     try{
       unfold=panel.animate([
-        {clipPath:'inset(0 0 100% 0)',transform:'translateY(-24px)',opacity:.65},
-        {clipPath:'inset(0 0 0 0)',transform:'translateY(0)',opacity:1},
-      ],{duration:440,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+        {clipPath:'inset(0 0 100% 0)'},
+        {clipPath:'inset(0 0 0 0)'},
+      ],{duration:440,easing:'cubic-bezier(.65,0,.35,1)',fill:'forwards'});
       unfold.finished.then(complete,complete);
     }catch{complete();}
     return()=>{cancelled=true;clearTimeout(deadline);unfold?.cancel();};

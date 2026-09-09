@@ -36,8 +36,8 @@
 .pilot-details .futuro-resume{padding-top:clamp(1.25rem,2.2vw,2.75rem)}
 .futuro-pilot .pilot-scroll[data-closing=true],.futuro-pilot .pilot-scroll[data-opening=true]{overflow:hidden}
 .pilot-fold-preview{position:fixed;inset:0;z-index:1;pointer-events:none}
-.pilot-details[data-opening=true]{position:fixed;inset:0;z-index:2;overflow:hidden;pointer-events:none;clip-path:inset(0 0 100% 0);will-change:clip-path,transform,opacity}
-.pilot-details[data-folding=true]{position:fixed;inset:0;z-index:2;overflow:hidden;pointer-events:none;will-change:clip-path,transform,opacity}
+.pilot-details[data-opening=true]{position:fixed;inset:0;z-index:2;overflow:hidden;pointer-events:none;clip-path:inset(0 0 100% 0);will-change:clip-path}
+.pilot-details[data-folding=true]{position:fixed;inset:0;z-index:2;overflow:hidden;pointer-events:none;will-change:clip-path}
 .pilot-details[data-folding=true]>.pilot-details-content{transform:translateY(var(--pilot-fold-offset));transform-origin:top}
 .futuro-year:disabled{cursor:default}
 @media(max-width:600px){
