@@ -43,12 +43,12 @@ export function BookMotion({config}:{config:Config}){
  </figure>;
 }
 
-export function LightMotion({cycle=0,outerOnly=false,active=true,enabled,onEnabled,layout,onLayout}:{cycle?:number;outerOnly?:boolean;active?:boolean;enabled:boolean;onEnabled:(value:boolean)=>void;layout:string;onLayout:(value:string)=>void}){
+export function LightMotion({cycle=0,cameraStep=0,outerOnly=false,active=true,enabled,onEnabled,layout,onLayout}:{cycle?:number;cameraStep?:number;outerOnly?:boolean;active?:boolean;enabled:boolean;onEnabled:(value:boolean)=>void;layout:string;onLayout:(value:string)=>void}){
  const [study,setStudy]=useState('7');
  const [frameReady,setFrameReady]=useState(false);
  const angles=['front','three-quarter','elevated','profile','extreme-high','extreme-low'];
  const [cameraAngle,setCameraAngle]=useState('three-quarter');
- const randomAngle=()=>{let previous:string|null=null;try{previous=sessionStorage.getItem('light-last-angle');}catch{}const options=angles.filter(angle=>angle!==previous);const next=options[Math.floor(Math.random()*options.length)];setCameraAngle(next);try{sessionStorage.setItem('light-last-angle',next);}catch{}};
+ const randomAngle=()=>{let previous:string|null=null;try{previous=sessionStorage.getItem('light-last-angle');}catch{}const options=angles.filter(angle=>angle!==previous&&angle!==cameraAngle);const next=options[Math.floor(Math.random()*options.length)];setCameraAngle(next);try{sessionStorage.setItem('light-last-angle',next);}catch{}};
  useEffect(()=>{
   randomAngle();
   let previous:string|null=null;
@@ -60,15 +60,17 @@ export function LightMotion({cycle=0,outerOnly=false,active=true,enabled,onEnabl
  },[]);
  const previousCycle=useRef(cycle);
  useEffect(()=>{if(cycle===previousCycle.current)return;previousCycle.current=cycle;randomAngle();setStudy(value=>{const options=studies.filter(item=>String(item.id)!==value);const next=String(options[Math.floor(Math.random()*options.length)].id);try{sessionStorage.setItem('light-last-animation',next);}catch{}return next;});},[cycle]);
+ const previousCameraStep=useRef(cameraStep);
+ useEffect(()=>{if(cameraStep===previousCameraStep.current)return;previousCameraStep.current=cameraStep;randomAngle();},[cameraStep]);
  const [playing,setPlaying]=useState<boolean|null>(null);
  const reduced=useSyncExternalStore(subscribeMotion,()=>matchMedia('(prefers-reduced-motion: reduce)').matches,()=>true);
  const isPlaying=playing??!reduced;
  const frame=useRef<HTMLIFrameElement>(null);
- const update=()=>frame.current?.contentWindow?.postMessage({type:'book-motion',study:Number(study),playing:enabled&&isPlaying&&active,centered:true,cameraAngle,outerOnly},'*');
+ const update=()=>frame.current?.contentWindow?.postMessage({type:'book-motion',study:Number(study),playing:enabled&&isPlaying&&active,centered:true,cameraAngle,animateCamera:cameraStep>0&&!reduced,outerOnly},'*');
  useEffect(()=>{
-  const send=()=>frame.current?.contentWindow?.postMessage({type:'book-motion',study:Number(study),playing:enabled&&isPlaying&&active,centered:true,cameraAngle,outerOnly},'*');
+  const send=()=>frame.current?.contentWindow?.postMessage({type:'book-motion',study:Number(study),playing:enabled&&isPlaying&&active,centered:true,cameraAngle,animateCamera:cameraStep>0&&!reduced,outerOnly},'*');
   const ready=(event:MessageEvent)=>{if(event.source!==frame.current?.contentWindow)return;if(event.data?.type==='book-motion-ready')send();if(event.data?.type==='book-motion-painted'&&event.data.study===Number(study))setFrameReady(true);};
   window.addEventListener('message',ready);send();return()=>window.removeEventListener('message',ready);
- },[study,isPlaying,enabled,active,cameraAngle,outerOnly]);
- return <>{enabled&&<iframe className="light-motion-art" style={{opacity:frameReady?1:0}} ref={frame} src="/motion/index.html" title="Light sculpture — drag to orbit" sandbox="allow-scripts allow-same-origin" onLoad={update}/>}</>;
+ },[study,isPlaying,enabled,active,cameraAngle,cameraStep,reduced,outerOnly]);
+ return <>{enabled&&<iframe className="light-motion-art" style={{opacity:frameReady?1:0}} ref={frame} src="/motion/index.html?v=camera-scroll-20260909" title="Light sculpture — drag to orbit" sandbox="allow-scripts allow-same-origin" onLoad={update}/>}</>;
 }

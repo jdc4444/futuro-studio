@@ -1067,6 +1067,7 @@
  const hiveStartTime=9; // Begin the whole hive study a quarter-turn into its 36-second cycle.
  let current=22,t=hiveStartTime,running=true,speed=1,last=performance.now(),drag=false,px=0,py=0,yaw=.58,pitch=.24;
  let outerOnly=false;
+ let cameraMove=null,lastCameraAngle=null;
  // Preserve the exact moving frame transforms; exclude the subject and its projections.
  const outerShapes=new Set([prismFrame,...sliceFrames,contourFloor,...whalePlanes,...empirePlanes,cityGround,...solarFrames,solarFloor,bikeBack,bikeSide,...bikeSections.map(s=>s.g),...volcanoPanels,volcanoFloor,...impactPanels,impactFloor,...flockPlanes,flockFloor,...flightStudies[0].panels,flightStudies[0].floor,...butterflyPanels,butterflyFloor,...hiveSections,hiveFloor]);
  const outerPaths=new Set();
@@ -1084,7 +1085,7 @@
  root.querySelector('#rs-study').addEventListener('change',e=>{current=Number(e.target.value);t=current===22?hiveStartTime:0;yaw=[.28,.08,-.78,0,.65,.035,.5,.45,.05,.6,.20,.55,.45,.42,.24,.45,.40,.45,.35,.4,.30,.25,.58,.035][current];pitch=[.36,.06,.36,0,.55,1.08,.28,.32,.12,.58,.40,.35,.42,.30,.27,.34,.42,.22,.28,.30,.20,.30,.24,1.08][current];studies.forEach((g,i)=>g.visible=i===current);root.querySelector('#rs-detail').textContent=detail[current].replace('36-second',String(36/speed)+'-second');size()});
  root.querySelector('#rs-speed').addEventListener('change',e=>{speed=Number(e.target.value);root.querySelector('#rs-detail').textContent=detail[current].replace('36-second',String(36/speed)+'-second')});
  root.querySelector('#rs-play').addEventListener('click',e=>{running=!running;e.currentTarget.textContent=running?'Pause':'Play';e.currentTarget.setAttribute('aria-pressed',String(!running))});
- stage.addEventListener('pointerdown',e=>{drag=true;px=e.clientX;py=e.clientY;stage.setPointerCapture(e.pointerId)});
+ stage.addEventListener('pointerdown',e=>{cameraMove=null;drag=true;px=e.clientX;py=e.clientY;stage.setPointerCapture(e.pointerId)});
  stage.addEventListener('pointermove',e=>{if(!drag)return;yaw-=(e.clientX-px)*.008;pitch=Math.max(-1.45,Math.min(1.45,pitch+(e.clientY-py)*.008));px=e.clientX;py=e.clientY});
  stage.addEventListener('pointerup',()=>drag=false);stage.addEventListener('pointercancel',()=>drag=false);
  renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();root.querySelector('#rs-error').hidden=false;root.querySelector('#rs-error').textContent='The graphics context was interrupted. Reopen this view to resume.'});
@@ -1109,6 +1110,13 @@
 
  }
  function draw(now){if(!root.isConnected){renderer.dispose();return}const dt=Math.min((now-last)/1000,.08);last=now;if(running&&!drag)t=(t+dt*speed)%36;
+  if(cameraMove&&!drag){
+   const progress=Math.min(1,Math.max(0,(now-cameraMove.start)/700));
+   const eased=progress*progress*(3-2*progress);
+   yaw=cameraMove.yaw+(cameraMove.targetYaw-cameraMove.yaw)*eased;
+   pitch=cameraMove.pitch+(cameraMove.targetPitch-cameraMove.pitch)*eased;
+   if(progress===1)cameraMove=null;
+  }
   if(current===2)updateSmoke(running&&!drag?dt*speed:0);
   pose(t/36*Math.PI*2);const r=12;camera.position.set(r*Math.sin(yaw)*Math.cos(pitch),r*Math.sin(pitch),r*Math.cos(yaw)*Math.cos(pitch));camera.lookAt(0,0,0);
   // Translate birds in screen space; construction planes remain at the origin.
@@ -1128,9 +1136,16 @@
   renderer.domElement.style.width=centered?'100%':'';
   renderer.domElement.style.height=centered?'100%':'';
  }
- if([0, 1, 2, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 20, 21, 22].includes(study)&&study!==current){const select=root.querySelector('#rs-study');select.value=String(study);select.dispatchEvent(new Event('change'));}
+ const studyChanged=[0, 1, 2, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 20, 21, 22].includes(study)&&study!==current;
+ if(studyChanged){cameraMove=null;const select=root.querySelector('#rs-study');select.value=String(study);select.dispatchEvent(new Event('change'));}
  const angles={'front':[0,.12],'three-quarter':[.65,.35],'elevated':[.6,.85],'profile':[Math.PI/2,.2],'extreme-high':[.6,1.35],'extreme-low':[.6,-1.35]};
- if(Object.prototype.hasOwnProperty.call(angles,cameraAngle)){[yaw,pitch]=angles[cameraAngle];}
+ if(Object.prototype.hasOwnProperty.call(angles,cameraAngle)&&(cameraAngle!==lastCameraAngle||studyChanged)){
+  const [targetYaw,targetPitch]=angles[cameraAngle];
+  if(event.data.animateCamera===true&&lastCameraAngle!==null&&!studyChanged&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+   cameraMove={yaw,pitch,targetYaw,targetPitch,start:performance.now()};
+  }else{cameraMove=null;yaw=targetYaw;pitch=targetPitch;}
+  lastCameraAngle=cameraAngle;
+ }
  if(typeof playing==='boolean')running=playing;
 });
 running=false;parent.postMessage({type:'book-motion-ready'},'*');

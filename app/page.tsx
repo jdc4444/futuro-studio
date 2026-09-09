@@ -1,5 +1,5 @@
 "use client";
-import {useState,useMemo,useEffect,useRef,type FormEvent} from 'react';
+import {useState,useMemo,useEffect,useRef,useCallback,type FormEvent} from 'react';
 import {ContactInput} from './contact-input';
 import {LightMotion} from './book-motion';
 import {LightTypography} from './light-typography';
@@ -45,6 +45,8 @@ export default function Home({pilot=false}:{pilot?:boolean}={}){
  const [pilotIntro,setPilotIntro]=useState(true);
  const [pilotFootage,setPilotFootage]=useState(false);
  const [pilotOpen,setPilotOpen]=useState(false);
+ const [pilotCameraStep,setPilotCameraStep]=useState(0);
+ const shiftPilotCamera=useCallback(()=>setPilotCameraStep(step=>step+1),[]);
  const hero=useRef<HTMLDivElement>(null);
  function openView(next:'information'|'contact'){
   setHover(false);setView(v=>v===next?'home':next);
@@ -68,7 +70,7 @@ export default function Home({pilot=false}:{pilot?:boolean}={}){
  useEffect(()=>{if(!hover)return;const timer=setInterval(()=>setIndex(i=>(i+1)%languages.length),1000/11.25);return()=>clearInterval(timer)},[hover]);
  return <div className={`futuro-site${pilot?' futuro-pilot':''}`} data-theme={theme} data-view={view} data-pilot-intro={pilotIntro} data-pilot-footage={pilotFootage} data-pilot-open={pilotOpen}><div className="futuro-hero" ref={hero}><div className="experience with-motion light-layout-center futuro-surface">
  <button className="phrases single-phrase" style={{visibility:view==='home'&&(!pilot||pilotIntro)?'visible':'hidden'}} tabIndex={view==='home'&&(!pilot||pilotIntro)?0:-1} aria-hidden={view!=='home'||(pilot&&!pilotIntro)} type="button" aria-label="futuro — hover for translations, click for another animation" onPointerEnter={e=>{if(e.pointerType==='mouse')setHover(true)}} onPointerLeave={()=>setHover(false)} onFocus={e=>{if(e.currentTarget.matches(':focus-visible'))setHover(true)}} onBlur={()=>setHover(false)} onClick={()=>setCycle(c=>c+1)}><LightTypography dotted onSize={setLogoSize} entries={hover?entries:resting} visible={[hover?languages[(index+1)%languages.length][0]:'en']} layout="center"/></button>
- <LightMotion cycle={cycle} outerOnly={(pilot&&!pilotIntro)||view!=='home'} active={pilot?(!pilotOpen||view!=='home'):heroVisible} enabled onEnabled={()=>{}} layout="center" onLayout={()=>{}}/>
+ <LightMotion cycle={cycle} cameraStep={pilotCameraStep} outerOnly={(pilot&&!pilotIntro)||view!=='home'} active={pilot?(!pilotOpen||view!=='home'):heroVisible} enabled onEnabled={()=>{}} layout="center" onLayout={()=>{}}/>
  {view==='information'&&<section className="futuro-info-copy" aria-label="About Futuro">
  <p>Futuro is an independent creative studio based in Brooklyn, New York. We work across film, music, fashion, documentary and visual identity.</p>
  <p>Our work begins with the real and follows it somewhere unexpected: a familiar place behaving differently, a portrait that opens onto a larger story, an imagined future made tangible.</p>
@@ -81,5 +83,5 @@ export default function Home({pilot=false}:{pilot?:boolean}={}){
  </div></div>
  <button className="futuro-information" aria-pressed={view==='information'} onClick={()=>openView('information')} disabled={status==='sending'}>Information</button>
  <button className="futuro-contact" aria-pressed={view==='contact'} onClick={()=>openView('contact')} disabled={status==='sending'}>Contact</button>
- <footer className="futuro-footer">Futuro LLC © Brooklyn, NY</footer><button className="futuro-year" type="button" aria-label={`Switch to ${theme==='dark'?'light':'dark'} mode`} aria-pressed={theme==='light'} onClick={()=>setTheme(t=>t==='dark'?'light':'dark')}>MMXXVI</button><main>{pilot?<PilotProjects suspended={view!=='home'} onIntroChange={setPilotIntro} onFootageChange={setPilotFootage} onOpenChange={setPilotOpen}/>:<ResumeEntries/>}</main></div>;
+ <footer className="futuro-footer">Futuro LLC © Brooklyn, NY</footer><button className="futuro-year" type="button" aria-label={`Switch to ${theme==='dark'?'light':'dark'} mode`} aria-pressed={theme==='light'} onClick={()=>setTheme(t=>t==='dark'?'light':'dark')}>MMXXVI</button><main>{pilot?<PilotProjects suspended={view!=='home'} onIntroChange={setPilotIntro} onFootageChange={setPilotFootage} onOpenChange={setPilotOpen} onPreviewChange={shiftPilotCamera}/>:<ResumeEntries/>}</main></div>;
 }

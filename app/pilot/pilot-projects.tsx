@@ -60,7 +60,7 @@ function Preview({project,scrollRoot,suspended,onOpen}:{
   </button>;
 }
 
-export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onOpenChange}:{suspended?:boolean;onIntroChange:(visible:boolean)=>void;onFootageChange:(visible:boolean)=>void;onOpenChange:(open:boolean)=>void}) {
+export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onOpenChange,onPreviewChange}:{suspended?:boolean;onIntroChange:(visible:boolean)=>void;onFootageChange:(visible:boolean)=>void;onOpenChange:(open:boolean)=>void;onPreviewChange:()=>void}) {
   const scrollRoot=useRef<HTMLDivElement>(null);
   const intro=useRef<HTMLElement>(null);
   const cards=useRef<(HTMLElement|null)[]>([]);
@@ -78,12 +78,17 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
   const animation=useRef(0);
   const last=selectedProjects.length-1;
 
+  function selectPreview(index:number){
+    if(currentPreview.current!==index)onPreviewChange();
+    currentPreview.current=index;
+  }
+
   function scrollToPreview(index:number,wrap=false,smooth=true){
     const scroller=scrollRoot.current;
     const card=wrap?end.current:index===-1?intro.current:cards.current[index];
     if(!scroller||!card)return;
     cancelAnimationFrame(animation.current);
-    currentPreview.current=index;
+    selectPreview(index);
     const target=card.offsetTop,start=scroller.scrollTop;
     destination.current=target;
     if(!smooth||matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -110,7 +115,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
   function stopAtPreview(index:number){
     gesture.current.hold();
     if(touch.current)touch.current.consumed=true;
-    currentPreview.current=index;
+    selectPreview(index);
     pendingAnchor.current={index};
     expandedRef.current=null;
     setExpanded(null);
@@ -246,7 +251,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       cancelAnimationFrame(frame.current);frame.current=0;
       cancelAnimationFrame(animation.current);animation.current=0;
     };
-  },[last,suspended,onIntroChange,onFootageChange]);
+  },[last,suspended,onIntroChange,onFootageChange,onPreviewChange]);
 
   useEffect(()=>{
     if(!suspended)return;
