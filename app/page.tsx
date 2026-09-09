@@ -1,5 +1,6 @@
 "use client";
 import {useState,useMemo,useEffect,type FormEvent} from 'react';
+import {ContactInput} from './contact-input';
 import {LightMotion} from './book-motion';
 import {LightTypography} from './light-typography';
 import {futuroTranslations} from './futuro-translations';
@@ -55,14 +56,14 @@ export default function Home(){
  useEffect(()=>{if(!hover)return;const timer=setInterval(()=>setIndex(i=>(i+1)%languages.length),1000/15);return()=>clearInterval(timer)},[hover]);
  return <><main className="experience with-motion light-layout-center futuro-surface">
  <button className="phrases single-phrase" style={{visibility:view==='home'?'visible':'hidden'}} tabIndex={view==='home'?0:-1} aria-hidden={view!=='home'} type="button" aria-label="futuro — hover for translations, click for another animation" onPointerEnter={e=>{if(e.pointerType==='mouse')setHover(true)}} onPointerLeave={()=>setHover(false)} onFocus={e=>{if(e.currentTarget.matches(':focus-visible'))setHover(true)}} onBlur={()=>setHover(false)} onClick={()=>setCycle(c=>c+1)}><LightTypography dotted onSize={setLogoSize} entries={hover?entries:resting} visible={[hover?languages[(index+1)%languages.length][0]:'en']} layout="center"/></button>
- <LightMotion cycle={cycle} outerOnly={view==='information'} enabled onEnabled={()=>{}} layout="center" onLayout={()=>{}}/>
+ <LightMotion cycle={cycle} outerOnly={view!=='home'} enabled onEnabled={()=>{}} layout="center" onLayout={()=>{}}/>
  {view==='information'&&<section className="futuro-info-copy" aria-label="About Futuro">
  <p>Futuro is an independent creative studio based in Brooklyn, New York. We work across film, music, fashion, documentary and visual identity.</p>
  <p>Our work begins with the real and follows it somewhere unexpected: a familiar place behaving differently, a portrait that opens onto a larger story, an imagined future made tangible.</p>
  <p>We develop and direct moving images for artists, brands and cultural institutions, bringing together live action, animation and emerging tools. Our speculative projects explore folklore, architecture, technology and the people who move between them.</p>
  </section>}
  {view==='contact'&&<form className="futuro-contact-form" onSubmit={submit} style={{fontSize:logoSize}} aria-label="Send a message">
- {status==='sent'?<div className="futuro-sent" role="status">sent</div>:<><input autoFocus aria-label="Your message" placeholder="Your message" value={message} onChange={e=>setMessage(e.target.value)} required maxLength={5000} disabled={status==='sending'} autoComplete="off" enterKeyHint="send"/><div className="futuro-form-note" aria-live="polite">{status==='sending'?'Sending…':error||'Press Enter to send'}</div></>}
+ {status==='sent'?<div className="futuro-sent" role="status">sent</div>:<><ContactInput value={message} onChange={setMessage} disabled={status==='sending'}/>{(status==='sending'||error)&&<div className="futuro-form-note" aria-live="polite">{status==='sending'?'Sending…':error}</div>}</>}
  </form>}
  </main>
  <button className="futuro-information" aria-pressed={view==='information'} onClick={()=>{setHover(false);setView(v=>v==='information'?'home':'information')}} disabled={status==='sending'}>Information</button>

@@ -128,9 +128,14 @@ button.phrases{display:block;width:100%;height:100%;min-height:0}
 .futuro-info-copy,.futuro-contact-form{grid-area:1/1;z-index:3;position:relative;align-self:center;justify-self:center;width:100%;color:#fff}
 .futuro-info-copy{max-width:640px;max-height:calc(100svh - 160px);overflow-y:auto;font:300 clamp(18px,2vw,24px)/1.5 Raleway,sans-serif;text-align:left}
 .futuro-info-copy p{margin:0 0 1em}.futuro-info-copy p:last-child{margin-bottom:0}
-.futuro-contact-form{max-width:1200px;font-family:'Raleway Dots',Raleway,sans-serif;font-weight:400;text-align:center}
-.futuro-contact-form input{display:block;width:100%;padding:12px 0;border:0;border-bottom:1px solid #777;border-radius:0;outline:none;background:transparent;color:inherit;font:inherit;text-align:center;caret-color:#fff}
+.futuro-contact-form{max-width:600px;width:min(72vw,600px);font-family:'Raleway Dots',Raleway,sans-serif;font-weight:400;text-align:center}
+.futuro-contact-form input{display:block;width:100%;padding:12px 0;border:0;border-bottom:0;border-radius:0;outline:none;background:transparent;color:inherit;font:inherit;text-align:center;caret-color:transparent}
 .futuro-contact-form input:focus{border-bottom-color:#fff}.futuro-contact-form input::placeholder{color:#aaa;opacity:1}
 .futuro-form-note{font:400 12px/1.5 Raleway,sans-serif;margin-top:18px;color:#ccc;min-height:18px}
 .futuro-sent{padding:12px 0}.futuro-information[aria-pressed=true],.futuro-contact[aria-pressed=true]{text-decoration:underline;text-underline-offset:5px}
 @media(max-width:600px){.futuro-info-copy{max-height:calc(100svh - 152px);padding:0 8px}}
+
+.futuro-input-wrap{position:relative;padding-bottom:8px;background:radial-gradient(circle,#aaa 1px,transparent 1.3px) left bottom/8px 3px repeat-x}
+.futuro-dot-caret{position:absolute;top:50%;width:4px;height:4px;border-radius:50%;background:currentColor;transform:translate(-50%,-50%);pointer-events:none;animation:futuro-caret 1s steps(1,end) infinite}
+@keyframes futuro-caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.futuro-dot-caret{animation:none}}
