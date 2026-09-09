@@ -829,12 +829,12 @@
  const flock=studies[17],flockPlanes=[],flockCount=850;
  for(const z of [-1.35,0,1.35]){const g=new T.Group();g.position.z=z;frame(g,4.3,4.3);flock.add(g);flockPlanes.push(g)}
  const flockFloor=frame(flock,4.5,4.5);flockFloor.rotation.x=Math.PI/2;flockFloor.position.y=-1.60;
- const birdGeo=new T.BufferGeometry();birdGeo.setAttribute('position',new T.Float32BufferAttribute([0,0,.035,-.047,0,-.004,0,0,-.025,0,0,.035,0,0,-.025,.047,0,-.004],3));
+ const birdScale=.7,birdGeo=new T.BufferGeometry();birdGeo.setAttribute('position',new T.Float32BufferAttribute([0,0,.035,-.047,0,-.004,0,0,-.025,0,0,.035,0,0,-.025,.047,0,-.004],3));birdGeo.scale(birdScale,birdScale,birdScale);
  const birdSeed=new Float32Array(flockCount);for(let i=0;i<flockCount;i++)birdSeed[i]=natureHash(i+240)*natureTau;
  birdGeo.setAttribute('seed',new T.InstancedBufferAttribute(birdSeed,1));
  const birdMat=new T.ShaderMaterial({side:T.DoubleSide,uniforms:{phase:{value:0}},vertexShader:'attribute float seed;uniform float phase;void main(){vec3 p=position;p.y+=abs(p.x)*sin(phase*36.+seed)*.95;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(p,1.);}',fragmentShader:'void main(){gl_FragColor=vec4(.02,.02,.02,1.);}'});
  const birdMesh=new T.InstancedMesh(birdGeo,birdMat,flockCount);birdMesh.instanceMatrix.setUsage(T.DynamicDrawUsage);birdMesh.frustumCulled=false;flock.add(birdMesh);
- const flockShadow=natureParticles(flock,flockCount,1.3),birdDummy=new T.Object3D(),birdA=new T.Vector3(),birdB=new T.Vector3();
+ const flockShadow=natureParticles(flock,flockCount,1.3*birdScale),birdDummy=new T.Object3D(),birdA=new T.Vector3(),birdB=new T.Vector3();
  const birdSeeds=Array.from({length:flockCount},(_,i)=>{const r=Math.cbrt(natureHash(i+411)),a=natureHash(i+511)*natureTau,z=natureHash(i+611)*2-1,h=Math.sqrt(1-z*z);return [r*h*Math.cos(a),r*z,r*h*Math.sin(a),natureHash(i+711)*natureTau]});
  function birdPosition(s,t,out){const [a,b,c,k]=s,swirl=.6*Math.sin(t)+.35*b;out.set(1.38*a+.43*Math.sin(1.8*b+t)+.05*Math.sin(t*3+k),.70*b+.55*Math.sin(1.9*a+t)+.04*Math.sin(t*4+k),.62*c+.45*Math.cos(1.8*a-t));out.applyAxisAngle(new T.Vector3(0,1,0),swirl);return out}
  function poseFlock(angle){
@@ -863,7 +863,7 @@
   geo.setAttribute('seed',new T.InstancedBufferAttribute(seed,1));
   const mat=birdMat.clone(),mesh=new T.InstancedMesh(geo,mat,count);
   mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);mesh.frustumCulled=false;group.add(mesh);
-  const shadow=natureParticles(group,count,1.25);
+  const shadow=natureParticles(group,count,1.25*birdScale);
   const item={kind,count,group,panels,floor,seeds,mesh,mat,shadow};flightStudies.push(item);return item;
  }
  makeFlightStudy(20,2,1050);
