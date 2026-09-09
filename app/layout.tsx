@@ -6,11 +6,11 @@ export const metadata: Metadata = {
   description: 'futuro — brooklyn, new york.',
   icons: {
     icon: [
-      { url: '/favicon.ico?v=futuro-stacked-20260909', sizes: '16x16 32x32 48x48' },
-      { url: '/favicon-32.png?v=futuro-stacked-20260909', type: 'image/png', sizes: '32x32' },
-      { url: '/favicon.svg?v=futuro-stacked-20260909', type: 'image/svg+xml', sizes: 'any' },
+      { url: '/favicon.ico?v=futuro-raleway-20260909', sizes: '16x16 32x32 48x48' },
+      { url: '/favicon-32.png?v=futuro-raleway-20260909', type: 'image/png', sizes: '32x32' },
+      { url: '/favicon.svg?v=futuro-raleway-20260909', type: 'image/svg+xml', sizes: 'any' },
     ],
-    apple: '/apple-touch-icon.png?v=futuro-stacked-20260909',
+    apple: '/apple-touch-icon.png?v=futuro-raleway-20260909',
   },
 };
 
