@@ -46,7 +46,7 @@ export function BookMotion({config}:{config:Config}){
 export function LightMotion({cycle=0,outerOnly=false,enabled,onEnabled,layout,onLayout}:{cycle?:number;outerOnly?:boolean;enabled:boolean;onEnabled:(value:boolean)=>void;layout:string;onLayout:(value:string)=>void}){
  const [study,setStudy]=useState('7');
  const [frameReady,setFrameReady]=useState(false);
- const angles=['front','three-quarter','elevated','profile'];
+ const angles=['front','three-quarter','elevated','profile','extreme-high','extreme-low'];
  const [cameraAngle,setCameraAngle]=useState('three-quarter');
  const randomAngle=()=>{let previous:string|null=null;try{previous=sessionStorage.getItem('light-last-angle');}catch{}const options=angles.filter(angle=>angle!==previous);const next=options[Math.floor(Math.random()*options.length)];setCameraAngle(next);try{sessionStorage.setItem('light-last-angle',next);}catch{}};
  useEffect(()=>{
