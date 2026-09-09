@@ -45,7 +45,7 @@ export function LightTypography({entries,visible,layout,dotted=false,onSize}:{en
   const element=host.current;if(!element)return;
   let cancelled=false;
   const ready=Promise.all(entries.map(e=>document.fonts.load(`${e.weight} 100px "${e.family}"`,e.text)));
-  const update=()=>{if(cancelled||!element.clientWidth||!element.clientHeight)return;const css=getComputedStyle(element);const columns=css.gridTemplateColumns.split(' ').map(parseFloat).filter(n=>n>0);const rows=css.gridTemplateRows.split(' ').map(parseFloat).filter(n=>n>0);setPage(typesetLight(entries,columns.length?Math.min(...columns):element.clientWidth,rows.length?Math.min(...rows)*5:element.clientHeight))};
+  const update=()=>{if(cancelled||!element.clientWidth||!element.clientHeight)return;const css=getComputedStyle(element);const columns=css.gridTemplateColumns.split(' ').map(parseFloat).filter(n=>n>0);const rows=css.gridTemplateRows.split(' ').map(parseFloat).filter(n=>n>0);const widthRatio=parseFloat(css.getPropertyValue('--light-type-width-ratio'))||.085;setPage(typesetLight(entries,columns.length?Math.min(...columns):element.clientWidth,rows.length?Math.min(...rows)*5:element.clientHeight,widthRatio))};
   const observer=new ResizeObserver(()=>{void ready.then(update)});observer.observe(element);
   void ready.then(update).catch(update);
   return()=>{cancelled=true;observer.disconnect()};

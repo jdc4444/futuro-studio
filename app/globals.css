@@ -150,7 +150,7 @@ button.phrases{display:block;width:100%;height:100%;min-height:0}
 .futuro-site[data-theme=light]{--futuro-background:#fff;--futuro-foreground:#111;--futuro-muted:#73736e;--futuro-line:rgba(5,5,5,.2);--futuro-underline:rgba(5,5,5,.38);--futuro-navigation:#111;--futuro-input-dot:#666;color-scheme:light}
 .futuro-hero{position:relative;height:100svh;isolation:isolate}
 .futuro-site .futuro-surface{background:var(--futuro-background);color:var(--futuro-foreground)}
-.futuro-hero>.futuro-information,.futuro-hero>.futuro-contact,.futuro-hero>.futuro-footer,.futuro-hero>.futuro-year{position:absolute;color:var(--futuro-navigation)}
+.futuro-site>.futuro-information,.futuro-site>.futuro-contact,.futuro-site>.futuro-footer,.futuro-site>.futuro-year{position:fixed;z-index:50;color:#eee;mix-blend-mode:difference}
 .futuro-year{border:0;padding:16px;margin:-16px;background:transparent;cursor:pointer}
 .futuro-year:focus-visible{outline:1px solid currentColor;outline-offset:6px}
 .futuro-site .futuro-info-copy,.futuro-site .futuro-contact-form{color:var(--futuro-foreground)}
@@ -159,3 +159,12 @@ button.phrases{display:block;width:100%;height:100%;min-height:0}
 .futuro-site .futuro-input-wrap{background-image:radial-gradient(circle,var(--futuro-input-dot) 1px,transparent 1.3px)}
 .futuro-site .futuro-dot-caret{background-image:radial-gradient(circle,var(--futuro-input-dot) 1px,transparent 1.3px)}
 .futuro-site[data-theme=light] .light-motion-art{filter:none}
+@media(max-width:600px){
+ .futuro-site{--futuro-mobile-preview-height:min(calc((100vw - 2.5rem)/var(--futuro-first-preview-aspect)),42svh);--futuro-mobile-fold-gap:56px}
+ .futuro-site .single-phrase .light-type-grid{--light-type-width-ratio:.17;height:min(24svh,100%)}
+ .futuro-site[data-view=home] .futuro-hero{height:calc(100svh - var(--futuro-mobile-preview-height) - var(--futuro-mobile-fold-gap))}
+ .futuro-site[data-view=home] .futuro-surface{height:100%;min-height:0;padding:60px 12px 24px!important}
+ .futuro-site[data-view=home] .futuro-resume .project:first-child>.project-media{height:var(--futuro-mobile-preview-height);aspect-ratio:auto}
+ .futuro-site[data-view=home] .futuro-resume .project:first-child>.project-gallery{margin-top:var(--futuro-mobile-fold-gap)}
+}
+@media(max-width:600px) and (max-height:500px){.futuro-site[data-view=home] .futuro-surface{padding:52px 12px 8px!important}}

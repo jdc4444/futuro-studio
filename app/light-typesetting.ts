@@ -3,7 +3,7 @@ export type TypesetLine={text:string;x:number;y:number;inkHeight:number;inkWidth
 export type TypesetEntry=TypeEntry&{size:number;bodySample:string;bodyHeight:number;opticalBoost:number;lines:TypesetLine[]};
 export type TypesetPage={width:number;rowHeight:number;bodyHeight:number;entries:Record<string,TypesetEntry>};
 
-export function typesetLight(entries:TypeEntry[],width:number,height:number):TypesetPage{
+export function typesetLight(entries:TypeEntry[],width:number,height:number,widthRatio=.085):TypesetPage{
  const ctx=document.createElement('canvas').getContext('2d')!;
  const rowHeight=height/5;
  const cache=new Map<string,TextMetrics>();
@@ -20,7 +20,7 @@ export function typesetLight(entries:TypeEntry[],width:number,height:number):Typ
  const metrics=entries.map(entry=>({entry,metric:measure(entry,entry.text)}));
  const maxWidth=Math.max(1,...metrics.map(({metric})=>inkWidth(metric)));
  const maxHeight=Math.max(1,...metrics.map(({metric})=>inkHeight(metric)));
- const size=Math.max(1,Math.min(80,width*.085,(width-24)*100/maxWidth,(rowHeight-24)*100/maxHeight));
+ const size=Math.max(1,Math.min(80,width*widthRatio,(width-24)*100/maxWidth,(rowHeight-24)*100/maxHeight));
  const scale=size/100,result:Record<string,TypesetEntry>={};
  for(const {entry,metric:m} of metrics){
   result[entry.locale]={...entry,size,bodySample:entry.text,bodyHeight:size,opticalBoost:1,lines:[{
