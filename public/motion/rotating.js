@@ -379,6 +379,8 @@
  const prismGeo=new T.BufferGeometry();prismGeo.setAttribute('position',new T.Float32BufferAttribute(prismLines,3));prismFrame.add(new T.LineSegments(prismGeo,lineBlack));
  function poseAdditional(angle){
   studies[5].rotation.y=0;
+  // One steady revolution per cycle, counter to the prism's stepped rotation.
+  tree.rotation.y=treeLines.rotation.y=angle;
   const orbit=steppedAngle(angle,3);prismFrame.rotation.y=-orbit;
   treeMaterial.uniforms.windPhase.value=angle;
 
