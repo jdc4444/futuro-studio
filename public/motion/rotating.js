@@ -1076,11 +1076,49 @@
   const hidden=[];
   function isolate(group){for(const child of group.children){if(outerShapes.has(child))continue;if(outerPaths.has(child))isolate(child);else if(child.visible){hidden.push(child);child.visible=false}}}
   if(outerOnly)isolate(studies[current]);
-  renderer.render(scene,camera);
+  fitVisibleShapes();renderer.render(scene,camera);
   for(const child of hidden)child.visible=true;
  }
  const detail=['Counter-rotating fractal blocks · 36-second seamless cycle','Hypnos & axial planes · 36-second seamless cycle','Slow expansion · short smoke tail','Broken orbital rings · 36-second seamless cycle','Sequential stair turns · 36-second seamless cycle','Wind-blown tree & exposed roots · 36-second seamless cycle','White meridians & black chamber · 36-second seamless cycle','Slices & matching projections · 36-second seamless cycle','A wave wrapped onto a sphere · 36-second seamless cycle','Moving ridges on a continuous surface · 36-second seamless cycle','Blue whale cross-sections · 36-second seamless cycle','Setback sections & floor projection · 36-second seamless cycle','Orbits / square sections / projections · stylized scale','Opposing sides / rotating top & bottom · 36-second assembly cycle','Track frame / axial assembly · 36-second cycle','Lava / ash / rotating strata · 36-second cycle','One contour surface / lift / crater · 36-second cycle','850 birds / wingbeats / square sections · 36-second cycle','Rolling ribbon / revolving sections · 36-second cycle','Hollow spiral / rotating levels · 36-second cycle','Two flocks / parting & rejoining · 36-second cycle','Hinged wings / drifting paths / square sections · 36-second cycle','Half hive / exposed honeycomb / bees · 36-second cycle','Wild olive / cross-sectional contours · 36-second cycle'];
- function size(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const aspect=w/h,extent=[3.9,3.15,3.75,2.7,3.1,3.6,2.9,3.25,3.2,3.1,3.05,2.75,5.85,4.15,3.45,3.50,3.65,3.60,3.45,3.5,3.5,3.3,3.5,3.6][current];camera.top=extent/Math.min(1,aspect);camera.bottom=-camera.top;camera.right=camera.top*aspect;camera.left=-camera.right;camera.updateProjectionMatrix()}
+ const baseExtents=[3.9,3.15,3.75,2.7,3.1,3.6,2.9,3.25,3.2,3.1,3.05,2.75,5.85,4.15,3.45,3.50,3.65,3.60,3.45,3.5,3.5,3.3,3.5,3.6];
+ let framingStudy=current,framingExtent=baseExtents[current],requiredExtent=0;
+ const fitBox=new T.Box3(),fitView=new T.Matrix4(),fitInstance=new T.Matrix4(),fitTransform=new T.Matrix4();
+ const boundsVersions=new WeakMap();
+ function applyFraming(){
+  if(framingStudy!==current){framingStudy=current;framingExtent=baseExtents[current];}
+  const aspect=stage.clientWidth/Math.max(1,stage.clientHeight),extent=lightCentered?framingExtent:baseExtents[current];
+  camera.top=extent/Math.min(1,aspect);camera.bottom=-camera.top;camera.right=camera.top*aspect;camera.left=-camera.right;camera.updateProjectionMatrix();
+ }
+ function measureBounds(bounds,transform,aspect){
+  fitBox.copy(bounds).applyMatrix4(transform);
+  requiredExtent=Math.max(requiredExtent,Math.max(Math.abs(fitBox.min.x),Math.abs(fitBox.max.x))/aspect,Math.abs(fitBox.min.y),Math.abs(fitBox.max.y));
+ }
+ function fitVisibleShapes(){
+  if(!lightCentered)return;
+  if(framingStudy!==current)applyFraming();
+  const aspect=stage.clientWidth/Math.max(1,stage.clientHeight);
+  studies[current].updateWorldMatrix(true,true);camera.updateMatrixWorld(true);requiredExtent=0;
+  studies[current].traverseVisible(object=>{
+   const geometry=object.geometry,position=geometry?.attributes?.position;
+   if(!position||!position.count||geometry.drawRange.count===0)return;
+   if(object.material?.visible===false||object.material?.opacity===0)return;
+   if(!geometry.boundingBox||boundsVersions.get(geometry)!==position.version){geometry.computeBoundingBox();boundsVersions.set(geometry,position.version);}
+   if(geometry.boundingBox.isEmpty())return;
+   fitView.multiplyMatrices(camera.matrixWorldInverse,object.matrixWorld);
+   if(object.isInstancedMesh){
+    for(let i=0;i<object.count;i++){
+     object.getMatrixAt(i,fitInstance);const e=fitInstance.elements;
+     if(e[0]*e[0]+e[1]*e[1]+e[2]*e[2]<1e-12)continue;
+     fitTransform.multiplyMatrices(fitView,fitInstance);measureBounds(geometry.boundingBox,fitTransform,aspect);
+    }
+   }else measureBounds(geometry.boundingBox,fitView,aspect);
+  });
+  // Leave an edge margin, and retain the widest frame reached by this shape
+  // so the view never pulses in and out as it rotates or the camera is dragged.
+  const needed=requiredExtent*Math.min(1,aspect)*1.06;
+  if(Number.isFinite(needed)&&needed>framingExtent){framingExtent=needed;applyFraming();}
+ }
+ function size(){renderer.setSize(stage.clientWidth,stage.clientHeight,false);applyFraming()}
  new ResizeObserver(size).observe(stage);
  root.querySelector('#rs-study').addEventListener('change',e=>{current=Number(e.target.value);t=current===22?hiveStartTime:0;yaw=[.28,.08,-.78,0,.65,.035,.5,.45,.05,.6,.20,.55,.45,.42,.24,.45,.40,.45,.35,.4,.30,.25,.58,.035][current];pitch=[.36,.06,.36,0,.55,1.08,.28,.32,.12,.58,.40,.35,.42,.30,.27,.34,.42,.22,.28,.30,.20,.30,.24,1.08][current];studies.forEach((g,i)=>g.visible=i===current);root.querySelector('#rs-detail').textContent=detail[current].replace('36-second',String(36/speed)+'-second');size()});
  root.querySelector('#rs-speed').addEventListener('change',e=>{speed=Number(e.target.value);root.querySelector('#rs-detail').textContent=detail[current].replace('36-second',String(36/speed)+'-second')});
@@ -1127,7 +1165,16 @@
   renderVisibleScene();if(frameConfigured&&!frameAnnounced){frameAnnounced=true;parent.postMessage({type:'book-motion-painted',study:current},'*');}requestAnimationFrame(draw)
  }
   window.addEventListener('message',event=>{
- if(event.source!==parent||event.data?.type!=='book-motion')return;
+ if(event.source!==parent)return;
+ if(event.data?.type==='book-motion-orbit'){
+  if(event.data.phase==='start'){cameraMove=null;drag=true;}
+  else if(event.data.phase==='end')drag=false;
+  else if(event.data.phase==='move'&&drag&&Number.isFinite(event.data.dx)&&Number.isFinite(event.data.dy)){
+   yaw-=event.data.dx*.008;pitch=Math.max(-1.45,Math.min(1.45,pitch+event.data.dy*.008));
+  }
+  return;
+ }
+ if(event.data?.type!=='book-motion')return;
  const {study,playing,centered,cameraAngle}=event.data;
  outerOnly=event.data.outerOnly===true;
  frameConfigured=true;frameAnnounced=false;

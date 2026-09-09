@@ -25,27 +25,15 @@
 .futuro-pilot[data-view=home][data-pilot-footage=true]>.futuro-footer,
 .futuro-pilot[data-view=home][data-pilot-footage=true]>.futuro-year{mix-blend-mode:normal;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.65)}
 .futuro-pilot .light-motion-art{pointer-events:none}
+.futuro-pilot .experience.light-layout-center>.light-motion-drag{grid-area:1/1;position:relative;width:100%;height:100%;min-height:0;z-index:1;pointer-events:auto;cursor:grab;touch-action:pan-y;user-select:none}
+.futuro-pilot .light-motion-drag:active{cursor:grabbing}
 .futuro-pilot[data-view=home][data-pilot-open=true] .light-motion-art{visibility:hidden}
 .futuro-pilot[data-view=home][data-pilot-intro=false] .phrases{display:none}
 .futuro-pilot:not([data-view=home]) .futuro-hero{pointer-events:auto}
 .futuro-pilot .futuro-info-copy,.futuro-pilot .futuro-contact-form{pointer-events:auto}
 .pilot-details .futuro-resume{min-height:100svh}
-.pilot-details .futuro-resume .shell{width:100%;max-width:none}
-.pilot-details .futuro-resume .resume-main{padding:0 0 80px}
-.pilot-details .futuro-resume .project{border:0}
-.pilot-details .futuro-resume .project-media,.pilot-details .futuro-resume .project-media.player-active{height:100svh;aspect-ratio:auto}
-.pilot-details .futuro-resume .project-media .loop-backdrop,.pilot-details .futuro-resume .project-media .project-loop{object-fit:cover}
-.pilot-details .futuro-resume .project-media.player-active .project-loop{object-fit:var(--playback-fit,contain)}
-.pilot-details .futuro-resume .project-grid,.pilot-details .futuro-resume .project-gallery{margin-right:clamp(20px,4vw,70px);margin-left:clamp(20px,4vw,70px)}
-.pilot-details .futuro-resume .jdc-video-controls{bottom:64px}
-.pilot-details .futuro-resume .media-play-trigger{padding-bottom:76px}
-.pilot-details .futuro-resume .jdc-video-controls button{min-height:40px;font-size:13px}
 @media(max-width:600px){
  .pilot-preview{padding:80px 24px}
  .pilot-title{font-size:clamp(34px,9vw,58px);line-height:1.15;letter-spacing:-.02em}
- .pilot-details .futuro-resume .project-heading{margin:0 20px}
- .pilot-details .futuro-resume .project-body{margin:0 20px}
- .pilot-details .futuro-resume .content-section{padding-left:0;padding-right:0}
- .pilot-details .futuro-resume .jdc-video-controls{bottom:60px}
 }
 @media(prefers-reduced-motion:reduce){.pilot-title,.pilot-preview-film{transition:none}}

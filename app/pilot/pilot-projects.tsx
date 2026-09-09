@@ -141,7 +141,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     gesture.current.release();
     destination.current=null;
     currentPreview.current=index;
-    onIntroChange(false);onFootageChange(true);
+    onIntroChange(false);onFootageChange(false);
     pendingAnchor.current={index};
     visitedDetails.current=false;
     setExpanded(index);
@@ -167,7 +167,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
         if(!card)return;
         const bounds=card.getBoundingClientRect();
         const top=bounds.top-scroller.getBoundingClientRect().top;
-        onFootageChange(top>-height*.5);
+        onFootageChange(false);
         if(top < -height*.3)visitedDetails.current=true;
         const exit=projectExit(top,top+bounds.height,delta,visitedDetails.current);
         if(exit==='next')stopAtPreview(index===last?-1:index+1);
@@ -270,7 +270,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       className="pilot-project" data-project-route={project.route} data-expanded={expanded===index}
       aria-label={project.title}>
       {expanded===index
-        ? <div className="pilot-details"><ResumeEntries route={project.route} startMainMuted/></div>
+        ? <div className="pilot-details"><ResumeEntries route={project.route}/></div>
         : <Preview project={project} scrollRoot={scrollRoot} suspended={suspended} onOpen={()=>open(index)}/>}
     </section>)}
     <section ref={end} className="pilot-project pilot-intro pilot-loop-copy" aria-hidden="true"/>

@@ -1,7 +1,7 @@
 // Adapted from the live JDC résumé; keep its verified playback and gallery edits.
 import projects from './resume-projects.json';
 import {projectOrder} from './resume-selection';
-/** @param {HTMLElement} root @param {{routes?: string[], startMainMuted?: boolean}} [options] */
+/** @param {HTMLElement} root @param {{routes?: string[]}} [options] */
 export function mountResume(root, options = {}) {
     const list = root.querySelector("[data-project-list], #projectList");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -802,7 +802,6 @@ export function mountResume(root, options = {}) {
         });
         ["play","pause","volumechange","timeupdate","loadedmetadata"].forEach(eventName => video.addEventListener(eventName, updateControls));
         updateControls();
-        if (options.startMainMuted) activate(true);
       });
     }
     function bindGallerySoundPlayers() {

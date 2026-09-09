@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type PointerEvent } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const allStudies=[{id:0,title:'Fractal architecture',line:'Structure within structure.'},{id:1,title:'Coordinate planes',line:'Three planes. One changing space.'},{id:2,title:'Cloud / floating cube',line:'A solid form in a shifting atmosphere.'},{id:5,title:'Tree in the wind',line:'A study of movement and resistance.'},{id:6,title:'Inverted cosmos',line:'An interior with no fixed horizon.'},{id:7,title:'Contour well',line:'Depth revealed one contour at a time.'},{id:10,title:"Contour blue whale",line:"Form, motion and changing sections."},{id:11,title:"Contour Empire State",line:"Form, motion and changing sections."},{id:12,title:"Contour solar system",line:"Form, motion and changing sections."},{id:13,title:"Bicycle / cube",line:"Form, motion and changing sections."},{id:14,title:"Track bicycle / axial assembly",line:"Form, motion and changing sections."},{id:15,title:"Volcano / strata",line:"Form, motion and changing sections."},{id:16,title:"Asteroid / impact sections",line:"Form, motion and changing sections."},{id:17,title:"Murmuration / flight volume",line:"Form, motion and changing sections."},{id:20,title:"Murmuration / divide & return",line:"Form, motion and changing sections."},{id:21,title:"Butterflies / floating sections",line:"Form, motion and changing sections."},{id:22,title:"Half beehive",line:"Form, motion and changing sections."}];
@@ -43,7 +43,7 @@ export function BookMotion({config}:{config:Config}){
  </figure>;
 }
 
-export function LightMotion({cycle=0,cameraStep=0,outerOnly=false,active=true,enabled,onEnabled,layout,onLayout}:{cycle?:number;cameraStep?:number;outerOnly?:boolean;active?:boolean;enabled:boolean;onEnabled:(value:boolean)=>void;layout:string;onLayout:(value:string)=>void}){
+export function LightMotion({cycle=0,cameraStep=0,dragOnParent=false,outerOnly=false,active=true,enabled,onEnabled,layout,onLayout}:{cycle?:number;cameraStep?:number;dragOnParent?:boolean;outerOnly?:boolean;active?:boolean;enabled:boolean;onEnabled:(value:boolean)=>void;layout:string;onLayout:(value:string)=>void}){
  const [study,setStudy]=useState('7');
  const [frameReady,setFrameReady]=useState(false);
  const angles=['front','three-quarter','elevated','profile','extreme-high','extreme-low'];
@@ -66,11 +66,26 @@ export function LightMotion({cycle=0,cameraStep=0,outerOnly=false,active=true,en
  const reduced=useSyncExternalStore(subscribeMotion,()=>matchMedia('(prefers-reduced-motion: reduce)').matches,()=>true);
  const isPlaying=playing??!reduced;
  const frame=useRef<HTMLIFrameElement>(null);
+ const drag=useRef<{id:number;x:number;y:number}|null>(null);
+ const sendOrbit=(phase:string,dx=0,dy=0)=>frame.current?.contentWindow?.postMessage({type:'book-motion-orbit',phase,dx,dy},'*');
+ const endDrag=()=>{if(!drag.current)return;drag.current=null;sendOrbit('end');};
+ const startDrag=(event:PointerEvent<HTMLDivElement>)=>{
+  if(event.button!==0)return;
+  drag.current={id:event.pointerId,x:event.clientX,y:event.clientY};
+  event.currentTarget.setPointerCapture(event.pointerId);sendOrbit('start');
+ };
+ const moveDrag=(event:PointerEvent<HTMLDivElement>)=>{
+  const previous=drag.current;if(!previous||previous.id!==event.pointerId)return;
+  sendOrbit('move',event.clientX-previous.x,event.clientY-previous.y);
+  previous.x=event.clientX;previous.y=event.clientY;
+ };
+ useEffect(()=>{if(!dragOnParent)endDrag();},[dragOnParent]);
  const update=()=>frame.current?.contentWindow?.postMessage({type:'book-motion',study:Number(study),playing:enabled&&isPlaying&&active,centered:true,cameraAngle,animateCamera:cameraStep>0&&!reduced,outerOnly},'*');
  useEffect(()=>{
   const send=()=>frame.current?.contentWindow?.postMessage({type:'book-motion',study:Number(study),playing:enabled&&isPlaying&&active,centered:true,cameraAngle,animateCamera:cameraStep>0&&!reduced,outerOnly},'*');
   const ready=(event:MessageEvent)=>{if(event.source!==frame.current?.contentWindow)return;if(event.data?.type==='book-motion-ready')send();if(event.data?.type==='book-motion-painted'&&event.data.study===Number(study))setFrameReady(true);};
   window.addEventListener('message',ready);send();return()=>window.removeEventListener('message',ready);
  },[study,isPlaying,enabled,active,cameraAngle,cameraStep,reduced,outerOnly]);
- return <>{enabled&&<iframe className="light-motion-art" style={{opacity:frameReady?1:0}} ref={frame} src="/motion/index.html?v=camera-scroll-20260909" title="Light sculpture — drag to orbit" sandbox="allow-scripts allow-same-origin" onLoad={update}/>}</>;
+ return <>{enabled&&<iframe className="light-motion-art" style={{opacity:frameReady?1:0}} ref={frame} src="/motion/index.html?v=camera-fit-drag-20260909" title="Light sculpture — drag to orbit" sandbox="allow-scripts allow-same-origin" onLoad={update}/>}
+ {enabled&&dragOnParent&&<div className="light-motion-drag" aria-hidden="true" onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag} onLostPointerCapture={endDrag}/>}</>;
 }
