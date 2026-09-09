@@ -75,15 +75,29 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
   const gesture=useRef(createScrollGestureGate());
   const touch=useRef<{startY:number;consumed:boolean}|null>(null);
   const destination=useRef<number|null>(null);
+  const animation=useRef(0);
   const last=selectedProjects.length-1;
 
   function scrollToPreview(index:number,wrap=false,smooth=true){
     const scroller=scrollRoot.current;
     const card=wrap?end.current:index===-1?intro.current:cards.current[index];
     if(!scroller||!card)return;
+    cancelAnimationFrame(animation.current);
     currentPreview.current=index;
-    destination.current=card.offsetTop;
-    scroller.scrollTo({top:card.offsetTop,behavior:smooth&&!matchMedia('(prefers-reduced-motion: reduce)').matches?'smooth':'instant'});
+    const target=card.offsetTop,start=scroller.scrollTop;
+    destination.current=target;
+    if(!smooth||matchMedia('(prefers-reduced-motion: reduce)').matches){
+      scroller.scrollTop=target;return;
+    }
+    // Own the transition from start to finish; native smooth scrolling and
+    // scroll snapping can otherwise fight a subsequent gesture.
+    const began=performance.now();
+    const step=(now:number)=>{
+      const progress=Math.min(1,(now-began)/420);
+      scroller.scrollTop=start+(target-start)*(1-Math.pow(1-progress,3));
+      animation.current=progress<1?requestAnimationFrame(step):0;
+    };
+    animation.current=requestAnimationFrame(step);
   }
 
   function advance(direction:number){
@@ -170,13 +184,13 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     const onScroll=()=>{if(!frame.current)frame.current=requestAnimationFrame(inspect);};
     const onWheel=(event:WheelEvent)=>{
       if(suspended||event.ctrlKey||!event.deltaY)return;
-      if(gesture.current.wheel(performance.now())){event.preventDefault();return;}
+      const unit=event.deltaMode===1?16:event.deltaMode===2?scroller.clientHeight:1;
+      const amount=event.deltaY*unit;
+      if(gesture.current.wheel(performance.now(),amount)){event.preventDefault();return;}
       const index=expandedRef.current;
       if(index===null){
         event.preventDefault();advance(event.deltaY>0?1:-1);return;
       }
-      const unit=event.deltaMode===1?16:event.deltaMode===2?scroller.clientHeight:1;
-      const amount=event.deltaY*unit;
       const card=cards.current[index];
       if(!card)return;
       const nextY=scroller.scrollTop+amount;
@@ -230,6 +244,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       window.removeEventListener('touchcancel',onTouchEnd);
       window.removeEventListener('keydown',onKeyDown);
       cancelAnimationFrame(frame.current);frame.current=0;
+      cancelAnimationFrame(animation.current);animation.current=0;
     };
   },[last,suspended,onIntroChange,onFootageChange]);
 

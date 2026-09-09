@@ -14,15 +14,24 @@ export function loopDestination(scroll:number,first:number,end:number) {
 // One trackpad gesture includes its inertia. Consume that whole stream before
 // allowing another project transition; a fresh gesture releases the stop.
 export function createScrollGestureGate() {
-  let held=false,lastWheel=-Infinity;
+  let held=false,lastWheel=-Infinity,heldAt=-Infinity;
+  let previous=0,peak=0,decayed=false;
   return {
     get held(){return held;},
-    hold(){held=true;},
+    hold(){held=true;heldAt=lastWheel;peak=Math.abs(previous);decayed=false;},
     release(){held=false;},
-    wheel(now:number){
-      const freshGesture=now-lastWheel>180;
+    wheel(now:number,delta=0){
+      const magnitude=Math.abs(delta);
+      const reversed=magnitude>=4&&previous!==0&&Math.sign(delta)!==Math.sign(previous);
+      // A second swipe often starts before the previous swipe's inertia has
+      // stopped emitting events. Its renewed impulse is another gesture.
+      const newImpulse=decayed&&now-heldAt>300&&magnitude>=8&&magnitude>Math.abs(previous)*1.6;
+      const freshGesture=now-lastWheel>160||reversed||newImpulse;
       lastWheel=now;
       if(held&&freshGesture)held=false;
+      peak=Math.max(peak,magnitude);
+      if(peak>=8&&magnitude<peak*.55)decayed=true;
+      previous=delta;
       return held;
     },
   };
