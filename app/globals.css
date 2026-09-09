@@ -4,6 +4,8 @@
 @import './weight-fonts.css';
 @import './reference-fonts.css';
 @import './extra-fonts.css';
+@import './resume-fonts.css';
+@import './resume.css';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
@@ -142,3 +144,18 @@ button.phrases{display:block;width:100%;height:100%;min-height:0}
 
 .futuro-contact-form .futuro-form-note{position:absolute;top:100%;left:0;width:100%;margin-top:18px}
 .futuro-form-note a{text-decoration:underline;text-underline-offset:3px}
+
+/* Futuro is the first viewport; the project entries continue in the same document. */
+.futuro-site{--futuro-background:#000;--futuro-foreground:#fff;--futuro-muted:#aaa;--futuro-line:rgba(255,255,255,.2);--futuro-underline:rgba(255,255,255,.5);--futuro-navigation:#eee;--futuro-input-dot:#aaa;background:var(--futuro-background);color:var(--futuro-foreground);color-scheme:dark}
+.futuro-site[data-theme=light]{--futuro-background:#fff;--futuro-foreground:#111;--futuro-muted:#73736e;--futuro-line:rgba(5,5,5,.2);--futuro-underline:rgba(5,5,5,.38);--futuro-navigation:#111;--futuro-input-dot:#666;color-scheme:light}
+.futuro-hero{position:relative;height:100svh;isolation:isolate}
+.futuro-site .futuro-surface{background:var(--futuro-background);color:var(--futuro-foreground)}
+.futuro-hero>.futuro-information,.futuro-hero>.futuro-contact,.futuro-hero>.futuro-footer,.futuro-hero>.futuro-year{position:absolute;color:var(--futuro-navigation)}
+.futuro-year{border:0;padding:16px;margin:-16px;background:transparent;cursor:pointer}
+.futuro-year:focus-visible{outline:1px solid currentColor;outline-offset:6px}
+.futuro-site .futuro-info-copy,.futuro-site .futuro-contact-form{color:var(--futuro-foreground)}
+.futuro-site .futuro-form-note{color:var(--futuro-muted)}
+.futuro-site .futuro-contact-form input::placeholder{color:var(--futuro-input-dot)}
+.futuro-site .futuro-input-wrap{background-image:radial-gradient(circle,var(--futuro-input-dot) 1px,transparent 1.3px)}
+.futuro-site .futuro-dot-caret{background-image:radial-gradient(circle,var(--futuro-input-dot) 1px,transparent 1.3px)}
+.futuro-site[data-theme=light] .light-motion-art{filter:none}

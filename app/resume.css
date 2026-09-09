@@ -1,0 +1,104 @@
+/* Scoped JDC résumé layout; the opening Futuro screen keeps its own styles. */
+
+    .futuro-resume { --paper:#111; --ink:#f3f3ef; --muted:#73736e; --line:rgba(5,5,5,.2); --nav:rgba(243,243,239,.94); --underline:rgba(5,5,5,.38); --page:110rem; color-scheme:light; }
+    .futuro-resume * { box-sizing:border-box; }
+    .futuro-resume { scroll-behavior:auto; }
+    .futuro-resume { margin:0; background:var(--ink); color:var(--paper); font-family:Raleway,Arial,Helvetica,sans-serif; font-weight:500; line-height:1.4; -webkit-font-smoothing:antialiased; }
+    .futuro-resume a { color:inherit; text-decoration-color:var(--underline); text-underline-offset:.22em; }
+    .futuro-resume a:hover, .futuro-resume a:focus-visible { opacity:.62; text-decoration-color:currentColor; }
+    .futuro-resume .shell { width:min(var(--page),100%); margin:0 auto; }
+    .futuro-resume .section-label { font-size:.72rem; font-weight:500; letter-spacing:.09em; text-transform:uppercase; }
+    .futuro-resume button { padding:.35rem .45rem; border:0; border-bottom:1px solid transparent; background:transparent; color:var(--muted); font:inherit; font-size:.64rem; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; }
+    .futuro-resume button:hover, .futuro-resume button:focus-visible, .futuro-resume button.active { background:transparent; border-bottom-color:var(--paper); color:var(--paper); outline:none; }
+    .futuro-resume .resume-main { padding:0 clamp(1.25rem,2.2vw,2.75rem) 8rem; }
+    .futuro-resume .project { border-top:1px solid var(--line); }
+    .futuro-resume .project-media { position:relative; width:100%; aspect-ratio:var(--project-aspect,16/9); overflow:hidden; background:var(--project-bg,#0a0a0a); cursor:pointer; }
+    .futuro-resume .project-media.player-active { aspect-ratio:var(--playback-aspect,var(--project-aspect,16/9)); }
+    .futuro-resume .project-media::after { position:absolute; z-index:3; inset:0; border:1px solid rgba(245,245,242,.08); pointer-events:none; content:""; }
+    .futuro-resume .loop-backdrop { position:absolute; z-index:0; inset:0; width:100%; height:100%; display:block; object-fit:cover; background:#0a0a0a; pointer-events:none; }
+    .futuro-resume .project-media .loop-backdrop { object-fit:var(--project-fit,cover); transform:scale(var(--loop-scale,1)); transform-origin:center; }
+    .futuro-resume .project-loop { position:relative; z-index:1; width:100%; height:100%; display:block; object-fit:var(--project-fit,cover); background:var(--project-bg,transparent); opacity:0; transform:scale(var(--loop-scale,1)); transform-origin:center; transition:opacity .18s ease; will-change:opacity; }
+    .futuro-resume .project-media.player-active .project-loop, .futuro-resume .project-loop.is-ready { opacity:1; }
+    .futuro-resume .project-media.player-active .project-loop { object-fit:var(--playback-fit,contain); transform:none; }
+    .futuro-resume .project-player-embed { position:absolute; z-index:2; inset:0; width:100%; height:100%; border:0; background:#000; }
+    .futuro-resume .project-media.player-embed .project-loop, .futuro-resume .project-media.player-embed .loop-backdrop { opacity:0; }
+    .futuro-resume .project-media.player-embed .jdc-video-controls { display:none; }
+    .futuro-resume .media-play-trigger { position:absolute; z-index:4; inset:0; width:100%; height:100%; display:flex; align-items:flex-end; justify-content:flex-start; padding:clamp(1rem,2vw,2rem); border:0; background:linear-gradient(to top,rgba(0,0,0,.22),transparent 28%); color:#fff; text-align:left; }
+    .futuro-resume .media-play-trigger:hover, .futuro-resume .media-play-trigger:focus-visible { border:0; background:linear-gradient(to top,rgba(0,0,0,.34),transparent 34%); opacity:1; outline:0; }
+    .futuro-resume .media-play-trigger span { display:inline-flex; align-items:center; justify-content:center; color:#fff; }
+    .futuro-resume .media-play-trigger svg { width:1.05rem; height:1.05rem; margin-left:.12rem; fill:currentColor; }
+    .futuro-resume .project-media.player-active .media-play-trigger { display:none; }
+    .futuro-resume .jdc-video-controls { position:absolute; z-index:5; left:16px; right:16px; bottom:14px; display:flex; align-items:center; gap:10px; opacity:0; visibility:hidden; transition:opacity 160ms ease,visibility 160ms ease; }
+    .futuro-resume .project-media.player-active:hover .jdc-video-controls, .futuro-resume .project-media.player-active:focus-within .jdc-video-controls { opacity:1; visibility:visible; }
+    .futuro-resume .jdc-video-controls button { flex:0 0 auto; padding:8px 11px; border:0; border-radius:999px; background:rgba(0,0,0,.58); color:#fff; font:600 11px/1 Raleway,Arial,sans-serif; letter-spacing:0; text-transform:none; backdrop-filter:blur(10px); }
+    .futuro-resume .jdc-video-controls button:hover, .futuro-resume .jdc-video-controls button:focus-visible { border:0; background:rgba(0,0,0,.78); color:#fff; opacity:1; outline:1px solid rgba(255,255,255,.7); }
+    .futuro-resume .jdc-video-progress { position:relative; flex:1; height:18px; display:flex; align-items:center; cursor:pointer; }
+    .futuro-resume .jdc-video-progress::before { width:100%; height:3px; border-radius:999px; background:rgba(255,255,255,.35); content:""; }
+    .futuro-resume .jdc-video-progress > span { position:absolute; left:0; width:0; height:3px; border-radius:999px; background:#fff; pointer-events:none; }
+    .futuro-resume .project-gallery { --gallery-gap:clamp(.55rem,.85vw,1rem); display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--gallery-gap); padding:clamp(.65rem,1vw,1.15rem) 0 clamp(1.2rem,2vw,2.25rem); background:transparent; border:0; }
+    .futuro-resume .gallery-two-column { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .futuro-resume .gallery-four-column { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    .futuro-resume .project-gallery.gallery-images { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    .futuro-resume .gallery-frame { position:relative; min-width:0; aspect-ratio:var(--media-aspect,16/9); margin:0; overflow:hidden; background:#0a0a0a; }
+    .futuro-resume .gallery-frame img, .futuro-resume .gallery-frame video { width:100%; height:100%; display:block; object-fit:cover; }
+    .futuro-resume .gallery-frame img:not(.loop-backdrop) { background:#0a0a0a; transition:opacity .2s ease; }
+    .futuro-resume .gallery-video { position:relative; z-index:1; background:transparent; opacity:0; transition:opacity .18s ease; will-change:opacity; }
+    .futuro-resume .gallery-video.is-ready { opacity:1; }
+    .futuro-resume .gallery-sound-frame { cursor:default; }
+    .futuro-resume .gallery-sound-frame:focus-visible { outline:1px solid rgba(255,255,255,.72); outline-offset:-1px; }
+    .futuro-resume .project-loop.is-loop-resetting, .futuro-resume .gallery-video.is-loop-resetting { opacity:0; transition:none; }
+    .futuro-resume .gallery-frame img:not([src]) { opacity:0; }
+    .futuro-resume .gallery-caption { position:absolute; z-index:2; top:.55rem; left:.55rem; padding:.26rem .42rem; background:rgba(5,5,5,.78); color:#f5f5f2; font-size:.58rem; letter-spacing:.075em; line-height:1; text-transform:uppercase; pointer-events:none; }
+    .futuro-resume .project-grid { display:grid; grid-template-columns:minmax(14rem,29%) minmax(0,1fr); }
+    .futuro-resume .project-heading { padding:clamp(1.3rem,2.2vw,2.5rem) 2rem clamp(2.5rem,5vw,6rem) 0; }
+    .futuro-resume .index { display:flex; justify-content:space-between; gap:1rem; margin-bottom:1rem; color:var(--muted); font-size:.7rem; }
+    .futuro-resume .project-meta { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.35rem; text-align:right; }
+    .futuro-resume .project-date { color:var(--paper); font-variant-numeric:tabular-nums; }
+    .futuro-resume .project-type { color:var(--paper); }
+    .futuro-resume h2 { margin:0; font-size:clamp(2rem,4.2vw,4.9rem); font-weight:500; letter-spacing:-.055em; line-height:.9; overflow-wrap:anywhere; }
+    .futuro-resume .project-body { min-width:0; border-left:1px solid var(--line); }
+    .futuro-resume .content-section { padding:clamp(1.35rem,2vw,2.2rem); border-bottom:1px solid var(--line); }
+    .futuro-resume .content-section:last-child { border-bottom:0; }
+    .futuro-resume .section-label { margin-bottom:1rem; color:var(--muted); }
+    .futuro-resume .credit-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.25rem 1.6rem; }
+    .futuro-resume .credit { min-width:0; }
+    .futuro-resume .credit-role { margin-bottom:.18rem; color:var(--muted); font-size:.68rem; letter-spacing:.05em; text-transform:uppercase; }
+    .futuro-resume .credit-name { font-size:clamp(.9rem,1.2vw,1.05rem); overflow-wrap:anywhere; }
+    .futuro-resume .link-line { display:flex; gap:.3rem 1.1rem; flex-wrap:wrap; }
+    .futuro-resume .link-line a { font-size:clamp(.95rem,1.3vw,1.1rem); }
+    .futuro-resume .quotes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1px; background:var(--line); }
+    .futuro-resume blockquote { margin:0; padding:clamp(1.35rem,2.2vw,2.5rem); background:var(--ink); }
+    .futuro-resume .quotes blockquote:last-child:nth-child(odd) { grid-column:1 / -1; }
+    .futuro-resume blockquote p { margin:0 0 1.4rem; font-size:clamp(1.15rem,2vw,2rem); letter-spacing:-.025em; line-height:1.18; white-space:pre-line; }
+    .futuro-resume blockquote footer { color:var(--muted); font-size:.75rem; }
+    .futuro-resume .empty { padding:5rem 0; color:var(--muted); }
+    .futuro-resume [hidden] { display:none !important; }
+    @media (max-width:900px) {
+      .futuro-resume .project-grid { grid-template-columns:1fr; min-height:0; }
+      .futuro-resume .project-gallery, .futuro-resume .project-gallery.gallery-images { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .futuro-resume .project-heading { padding-right:0; }
+      .futuro-resume .project-body { border-left:0; }
+      .futuro-resume .credit-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .futuro-resume .quotes { grid-template-columns:1fr; }
+    }
+    @media (min-width:561px) and (max-width:900px) {
+      .futuro-resume .project-gallery.gallery-three-items { grid-template-columns:repeat(3,minmax(0,1fr)); }
+      .futuro-resume .project-gallery.gallery-odd-over-three > .gallery-frame:nth-child(3) { display:none; }
+    }
+    @media (max-width:560px) {
+      .futuro-resume .credit-grid { grid-template-columns:1fr; }
+      .futuro-resume .project-gallery, .futuro-resume .project-gallery.gallery-images { grid-template-columns:1fr; }
+    }
+    @media print {
+      .futuro-resume .project { break-inside:avoid; }
+      .futuro-resume .project-media, .futuro-resume .project-gallery { display:none; }
+      .futuro-resume { background:#fff; color:#000; }
+      .futuro-resume .project-body, .futuro-resume .project, .futuro-resume .content-section { border-color:#bbb; }
+      .futuro-resume blockquote { background:#fff; }
+    }
+    @media (hover:none) { .futuro-resume .project-media.player-active .jdc-video-controls { opacity:1; visibility:visible; } }
+  
+.futuro-resume{--paper:var(--futuro-foreground);--ink:var(--futuro-background);--muted:var(--futuro-muted);--line:var(--futuro-line);--underline:var(--futuro-underline);color-scheme:inherit;font-family:'Resume Raleway',Raleway,Arial,sans-serif}
+.futuro-resume a{text-decoration-line:underline}
+.futuro-resume .jdc-video-controls button{font-family:'Resume Raleway',Raleway,Arial,sans-serif}
+.futuro-resume .project:first-child{border-top:0}

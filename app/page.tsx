@@ -1,8 +1,9 @@
 "use client";
-import {useState,useMemo,useEffect,type FormEvent} from 'react';
+import {useState,useMemo,useEffect,useRef,type FormEvent} from 'react';
 import {ContactInput} from './contact-input';
 import {LightMotion} from './book-motion';
 import {LightTypography} from './light-typography';
+import {ResumeEntries} from './resume-entries';
 import {futuroTranslations} from './futuro-translations';
 import weightFonts from './weight-fonts.json';
 import coverage from './latin-font-coverage.json';
@@ -38,6 +39,10 @@ export default function Home(){
  const [view,setView]=useState<'home'|'information'|'contact'>('home');
  const [message,setMessage]=useState(''),[status,setStatus]=useState<'idle'|'sending'|'sent'|'error'>('idle'),[logoSize,setLogoSize]=useState(80);
  const [error,setError]=useState('');
+ const [theme,setTheme]=useState<'dark'|'light'>('dark');
+ const [heroVisible,setHeroVisible]=useState(true);
+ const hero=useRef<HTMLDivElement>(null);
+ useEffect(()=>{const observer=new IntersectionObserver(([entry])=>setHeroVisible(entry.isIntersecting));if(hero.current)observer.observe(hero.current);return()=>observer.disconnect()},[]);
  useEffect(()=>{const escape=(e:KeyboardEvent)=>{if(e.key==='Escape'&&status!=='sending')setView('home')};window.addEventListener('keydown',escape);return()=>window.removeEventListener('keydown',escape)},[status]);
  useEffect(()=>{if(status!=='sent')return;const timer=setTimeout(()=>{setView('home');setStatus('idle');setMessage('')},1800);return()=>clearTimeout(timer)},[status]);
  async function submit(event:FormEvent<HTMLFormElement>){
@@ -53,9 +58,9 @@ export default function Home(){
  const entries=useMemo(()=>languages.map(([locale,,script])=>{const text=futuroTranslations[locale][0].toLocaleLowerCase(locale),native=Array.from(text.normalize('NFC')).every(c=>coverage['Raleway Dots'].includes(c.codePointAt(0)!));return {locale,script,text,family:native?'Raleway Dots':script==='Latin'?'Raleway':weightFonts[script as keyof typeof weightFonts],weight:native?400:300};}),[]);
  const resting=useMemo(()=>entries.map(e=>e.locale==='en'?{...e,text:'futuro'}:e),[entries]);
  useEffect(()=>{if(!hover)return;const timer=setInterval(()=>setIndex(i=>(i+1)%languages.length),1000/11.25);return()=>clearInterval(timer)},[hover]);
- return <><main className="experience with-motion light-layout-center futuro-surface">
+ return <div className="futuro-site" data-theme={theme}><div className="futuro-hero" ref={hero}><div className="experience with-motion light-layout-center futuro-surface">
  <button className="phrases single-phrase" style={{visibility:view==='home'?'visible':'hidden'}} tabIndex={view==='home'?0:-1} aria-hidden={view!=='home'} type="button" aria-label="futuro — hover for translations, click for another animation" onPointerEnter={e=>{if(e.pointerType==='mouse')setHover(true)}} onPointerLeave={()=>setHover(false)} onFocus={e=>{if(e.currentTarget.matches(':focus-visible'))setHover(true)}} onBlur={()=>setHover(false)} onClick={()=>setCycle(c=>c+1)}><LightTypography dotted onSize={setLogoSize} entries={hover?entries:resting} visible={[hover?languages[(index+1)%languages.length][0]:'en']} layout="center"/></button>
- <LightMotion cycle={cycle} outerOnly={view!=='home'} enabled onEnabled={()=>{}} layout="center" onLayout={()=>{}}/>
+ <LightMotion cycle={cycle} outerOnly={view!=='home'} active={heroVisible} enabled onEnabled={()=>{}} layout="center" onLayout={()=>{}}/>
  {view==='information'&&<section className="futuro-info-copy" aria-label="About Futuro">
  <p>Futuro is an independent creative studio based in Brooklyn, New York. We work across film, music, fashion, documentary and visual identity.</p>
  <p>Our work begins with the real and follows it somewhere unexpected: a familiar place behaving differently, a portrait that opens onto a larger story, an imagined future made tangible.</p>
@@ -65,8 +70,8 @@ export default function Home(){
  <ContactInput value={message} onChange={setMessage} disabled={status==='sending'||status==='sent'}/>
  <div className="futuro-form-note" aria-live="polite">{status==='sending'?'Sending…':status==='sent'?'Sent.':error}{status==='error'&&<> <a href={`mailto:jos@futuro.studio?subject=${encodeURIComponent('Futuro website message')}&body=${encodeURIComponent(message)}`}>Email this message</a></>}</div>
  </form>}
- </main>
+ </div>
  <button className="futuro-information" aria-pressed={view==='information'} onClick={()=>{setHover(false);setView(v=>v==='information'?'home':'information')}} disabled={status==='sending'}>Information</button>
  <button className="futuro-contact" aria-pressed={view==='contact'} onClick={()=>{setHover(false);setView(v=>v==='contact'?'home':'contact')}} disabled={status==='sending'}>Contact</button>
- <footer className="futuro-footer">Futuro LLC © Brooklyn, NY</footer><span className="futuro-year">MMXXVI</span></>;
+ <footer className="futuro-footer">Futuro LLC © Brooklyn, NY</footer><button className="futuro-year" type="button" aria-label={`Switch to ${theme==='dark'?'light':'dark'} mode`} aria-pressed={theme==='light'} onClick={()=>setTheme(t=>t==='dark'?'light':'dark')}>MMXXVI</button></div><main><ResumeEntries/></main></div>;
 }
