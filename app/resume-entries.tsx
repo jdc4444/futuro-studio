@@ -1,9 +1,6 @@
 'use client';
 import {useEffect,useRef} from 'react';
 import {mountResume} from './resume-runtime';
-import projects from './resume-projects.json';
-
-export const firstResumePreviewAspect=Number(projects[0].media.aspect)||16/9;
 
 export function ResumeEntries(){
  const root=useRef<HTMLElement>(null);

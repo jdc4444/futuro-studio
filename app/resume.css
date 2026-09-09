@@ -88,6 +88,15 @@
       .futuro-resume .credit-grid { grid-template-columns:1fr; }
       .futuro-resume .project-gallery, .futuro-resume .project-gallery.gallery-images { grid-template-columns:1fr; }
     }
+    /* Each mobile project opens with its preview and title, then the gallery. */
+    @media (max-width:600px) {
+      .futuro-resume .project { display:flex; flex-direction:column; }
+      .futuro-resume .project-grid { display:contents; }
+      .futuro-resume .project-media { order:0; }
+      .futuro-resume .project-heading { order:1; }
+      .futuro-resume .project-gallery { order:2; }
+      .futuro-resume .project-body { order:3; }
+    }
     @media print {
       .futuro-resume .project { break-inside:avoid; }
       .futuro-resume .project-media, .futuro-resume .project-gallery { display:none; }
