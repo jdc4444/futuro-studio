@@ -33,7 +33,7 @@
 .futuro-pilot .futuro-info-copy,.futuro-pilot .futuro-contact-form{pointer-events:auto}
 .pilot-details .futuro-resume{min-height:100svh}
 .pilot-details{--futuro-background:#fff;--futuro-foreground:#111;--futuro-muted:#73736e;--futuro-line:rgba(5,5,5,.2);--futuro-underline:rgba(5,5,5,.38);background:#fff;color:#111;color-scheme:light}
-.pilot-details .futuro-resume{padding-top:clamp(88px,10svh,120px)}
+.pilot-details .futuro-resume{padding-top:clamp(1.25rem,2.2vw,2.75rem)}
 .futuro-pilot .pilot-scroll[data-closing=true]{overflow:hidden}
 .pilot-fold-preview{position:fixed;inset:0;z-index:1;pointer-events:none}
 .pilot-details[data-folding=true]{position:fixed;inset:0;z-index:2;overflow:hidden;pointer-events:none;will-change:clip-path,transform,opacity}
