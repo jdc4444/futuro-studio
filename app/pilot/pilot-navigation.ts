@@ -6,9 +6,8 @@ export function projectExit(top:number,bottom:number,delta:number,visitedDetails
   return null;
 }
 
-export function loopDestination(scroll:number,first:number,last:number,end:number) {
+export function loopDestination(scroll:number,first:number,end:number) {
   if (scroll >= end - 1) return first + Math.max(0,scroll - end);
-  if (scroll <= 1) return last + scroll;
   return null;
 }
 

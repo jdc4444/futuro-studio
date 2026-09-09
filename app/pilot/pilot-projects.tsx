@@ -5,9 +5,9 @@ import {ResumeEntries} from '../resume-entries';
 import {selectedProjects,type SelectedProject} from '../resume-selection';
 import {anchoredScroll,loopDestination,projectExit} from './pilot-navigation';
 
-function Preview({project,scrollRoot,suspended,onOpen,duplicate=false}:{
+function Preview({project,scrollRoot,suspended,onOpen}:{
   project:SelectedProject;scrollRoot:RefObject<HTMLDivElement|null>;suspended:boolean;
-  onOpen:()=>void;duplicate?:boolean;
+  onOpen:()=>void;
 }) {
   const video=useRef<HTMLVideoElement>(null);
   const button=useRef<HTMLButtonElement>(null);
@@ -51,7 +51,7 @@ function Preview({project,scrollRoot,suspended,onOpen,duplicate=false}:{
     };
   },[project,scrollRoot,suspended]);
   return <button ref={button} className="pilot-preview" type="button" onClick={onOpen}
-    aria-label={`Explore ${project.title}`} tabIndex={duplicate?-1:0}
+    aria-label={`Explore ${project.title}`}
     style={{'--pilot-preview-scale':Math.max(1,Number(project.media.scale)||1)} as CSSProperties}>
     <img className="pilot-poster" src={project.media.poster} alt="" aria-hidden="true" draggable={false}/>
     <video ref={video} className="pilot-preview-film" data-ready={ready} poster={project.media.poster}
@@ -72,7 +72,6 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange}:{s
   const lastScroll=useRef(0);
   const frame=useRef(0);
   const initialized=useRef(false);
-  const last=selectedProjects.length-1;
 
   useLayoutEffect(()=>{
     const scroller=scrollRoot.current;
@@ -138,15 +137,15 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange}:{s
         return;
       }
       onFootageChange(!inIntro);
-      const first=intro.current,final=cards.current[last];
-      if(!first||!final||!end.current)return;
-      const destination=loopDestination(y,first.offsetTop,final.offsetTop,end.current.offsetTop);
+      const first=intro.current;
+      if(!first||!end.current)return;
+      const destination=loopDestination(y,first.offsetTop,end.current.offsetTop);
       if(destination!==null){scroller.scrollTop=destination;lastScroll.current=destination;}
     };
     const onScroll=()=>{if(!frame.current)frame.current=requestAnimationFrame(inspect);};
     scroller.addEventListener('scroll',onScroll,{passive:true});
     return()=>{scroller.removeEventListener('scroll',onScroll);cancelAnimationFrame(frame.current);frame.current=0;};
-  },[last,suspended,onIntroChange,onFootageChange]);
+  },[suspended,onIntroChange,onFootageChange]);
 
   useEffect(()=>{
     if(!suspended)return;
@@ -162,9 +161,6 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange}:{s
       pendingAnchor.current={index:expanded,top:scrollRoot.current?.getBoundingClientRect().top||0};
       setExpanded(null);
     }}>
-    <section className="pilot-project pilot-loop-copy" aria-hidden="true">
-      <Preview project={selectedProjects[last]} scrollRoot={scrollRoot} suspended={suspended} duplicate onOpen={()=>open(last)}/>
-    </section>
     <section ref={intro} className="pilot-project pilot-intro" aria-label="Futuro"/>
     {selectedProjects.map((project,index)=><section key={project.route} ref={node=>{cards.current[index]=node;}}
       className="pilot-project" data-project-route={project.route} data-expanded={expanded===index}
