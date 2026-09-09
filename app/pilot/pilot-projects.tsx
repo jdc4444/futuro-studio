@@ -75,6 +75,9 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
   const gesture=useRef(createScrollGestureGate());
   const touch=useRef<{startY:number;consumed:boolean}|null>(null);
   const animation=useRef(0);
+  const wheelAnimation=useRef(0);
+  const wheelTarget=useRef<number|null>(null);
+  const wheelTiming=useRef({last:0,response:55});
   const travel=useRef<'preview'|'project'|null>(null);
   const refresh=useRef(()=>{});
   const last=selectedProjects.length-1;
@@ -84,9 +87,15 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     currentPreview.current=index;
   }
 
+  function cancelWheelScroll(){
+    cancelAnimationFrame(wheelAnimation.current);
+    wheelAnimation.current=0;wheelTarget.current=null;
+  }
+
   function cancelScroll(){
     cancelAnimationFrame(animation.current);
     animation.current=0;travel.current=null;
+    cancelWheelScroll();
   }
 
   function elementTop(element:HTMLElement){
@@ -107,12 +116,14 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       scroller.scrollTop=elementTop(element);finish();return;
     }
     travel.current=kind;
-    const began=performance.now(),duration=kind==='project'?520:420;
+    const distance=Math.abs(elementTop(element)-start)/scroller.clientHeight;
+    const duration=kind==='project'?Math.min(1000,Math.max(520,680+Math.log2(Math.max(.25,distance))*120)):580;
+    const began=performance.now();
     const step=(now:number)=>{
       const progress=Math.min(1,(now-began)/duration);
-      const eased=kind==='project'
-        ? progress<.5?4*progress*progress*progress:1-Math.pow(-2*progress+2,3)/2
-        : 1-Math.pow(1-progress,3);
+      // Continuous velocity and acceleration avoid a kick at either end
+      // and the old abrupt acceleration change halfway through entry.
+      const eased=progress*progress*progress*(progress*(progress*6-15)+10);
       scroller.scrollTop=start+(elementTop(element)-start)*eased;
       if(progress<1)animation.current=requestAnimationFrame(step);
       else finish();
@@ -185,6 +196,45 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     setExpanded(index);
   }
 
+  function scrollProject(amount:number,response:number){
+    const scroller=scrollRoot.current,index=expandedRef.current;
+    if(!scroller||index===null)return;
+    const card=cards.current[index];
+    if(!card)return;
+    const top=elementTop(card),bottom=top+card.offsetHeight;
+    const current=scroller.scrollTop;
+    const remaining=(wheelTarget.current??current)-current;
+    // Reverse immediately when the user changes direction, without dragging
+    // along the remaining movement from the previous gesture.
+    const base=remaining*amount<0?current:wheelTarget.current??current;
+    wheelTarget.current=Math.max(top,Math.min(bottom,base+amount));
+    wheelTiming.current.response=response;
+    const apply=(next:number,edgeTop:number,edgeBottom:number)=>{
+      scroller.scrollTop=next;
+      if(next>=edgeBottom){resetToPreview(index===last?-1:index+1);return true;}
+      if(next<=edgeTop){resetToPreview(index);return true;}
+      return false;
+    };
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches){
+      const target=wheelTarget.current;cancelWheelScroll();apply(target,top,bottom);return;
+    }
+    if(wheelAnimation.current)return;
+    wheelTiming.current.last=performance.now();
+    const step=(now:number)=>{
+      if(expandedRef.current!==index||wheelTarget.current===null){cancelWheelScroll();return;}
+      const edgeTop=elementTop(card),edgeBottom=edgeTop+card.offsetHeight;
+      const target=Math.max(edgeTop,Math.min(edgeBottom,wheelTarget.current));
+      const elapsed=Math.min(64,Math.max(1,now-wheelTiming.current.last));
+      wheelTiming.current.last=now;
+      const next=scroller.scrollTop+(target-scroller.scrollTop)*(1-Math.exp(-elapsed/wheelTiming.current.response));
+      const settled=Math.abs(target-next)<.25;
+      if(apply(settled?target:next,edgeTop,edgeBottom))return;
+      if(settled){cancelWheelScroll();refresh.current();}
+      else wheelAnimation.current=requestAnimationFrame(step);
+    };
+    wheelAnimation.current=requestAnimationFrame(step);
+  }
+
   useEffect(()=>{
     const scroller=scrollRoot.current;
     if(!scroller)return;
@@ -236,20 +286,12 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       if(gesture.current.wheel(performance.now(),amount)){event.preventDefault();return;}
       const index=expandedRef.current;
       if(index===null){event.preventDefault();advance(amount>0?1:-1);return;}
-      const card=cards.current[index];
-      if(!card)return;
       event.preventDefault();
-      const top=elementTop(card),bottom=top+card.offsetHeight;
-      const nextY=scroller.scrollTop+amount;
-      if(nextY>=bottom){
-        scroller.scrollTop=bottom;resetToPreview(index===last?-1:index+1);
-      }else if(amount<0&&nextY<=top){
-        scroller.scrollTop=top;resetToPreview(index);
-      }else scroller.scrollTop=nextY;
+      scrollProject(amount,event.deltaMode===0?55:90);
     };
     const onTouchStart=(event:TouchEvent)=>{
       if(suspended||event.touches.length!==1)return;
-      interruptProjectScroll();gesture.current.release();
+      interruptProjectScroll();cancelWheelScroll();gesture.current.release();
       touch.current={startY:event.touches[0].clientY,consumed:false};
     };
     const onTouchMove=(event:TouchEvent)=>{
@@ -269,7 +311,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       const direction=['ArrowDown','PageDown'].includes(event.key)||(event.key===' '&&!event.shiftKey)?1:
         ['ArrowUp','PageUp'].includes(event.key)||(event.key===' '&&event.shiftKey)?-1:0;
       if(expandedRef.current!==null){
-        if(direction||event.key==='Home'||event.key==='End')interruptProjectScroll();
+        if(direction||event.key==='Home'||event.key==='End'){interruptProjectScroll();cancelWheelScroll();}
         return;
       }
       if(direction){event.preventDefault();if(!event.repeat)advance(direction);}
