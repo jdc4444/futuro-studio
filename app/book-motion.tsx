@@ -45,6 +45,7 @@ export function BookMotion({config}:{config:Config}){
 
 export function LightMotion({cycle=0,enabled,onEnabled,layout,onLayout}:{cycle?:number;enabled:boolean;onEnabled:(value:boolean)=>void;layout:string;onLayout:(value:string)=>void}){
  const [study,setStudy]=useState('7');
+ const [frameReady,setFrameReady]=useState(false);
  const angles=['front','three-quarter','elevated','profile'];
  const [cameraAngle,setCameraAngle]=useState('three-quarter');
  const randomAngle=()=>{let previous:string|null=null;try{previous=sessionStorage.getItem('light-last-angle');}catch{}const options=angles.filter(angle=>angle!==previous);const next=options[Math.floor(Math.random()*options.length)];setCameraAngle(next);try{sessionStorage.setItem('light-last-angle',next);}catch{}};
@@ -66,8 +67,8 @@ export function LightMotion({cycle=0,enabled,onEnabled,layout,onLayout}:{cycle?:
  const update=()=>frame.current?.contentWindow?.postMessage({type:'book-motion',study:Number(study),playing:enabled&&isPlaying,centered:true,cameraAngle},'*');
  useEffect(()=>{
   const send=()=>frame.current?.contentWindow?.postMessage({type:'book-motion',study:Number(study),playing:enabled&&isPlaying,centered:true,cameraAngle},'*');
-  const ready=(event:MessageEvent)=>{if(event.source===frame.current?.contentWindow&&event.data?.type==='book-motion-ready')send();};
+  const ready=(event:MessageEvent)=>{if(event.source!==frame.current?.contentWindow)return;if(event.data?.type==='book-motion-ready')send();if(event.data?.type==='book-motion-painted'&&event.data.study===Number(study))setFrameReady(true);};
   window.addEventListener('message',ready);send();return()=>window.removeEventListener('message',ready);
  },[study,isPlaying,enabled,cameraAngle]);
- return <>{enabled&&<iframe className="light-motion-art" ref={frame} src="/motion/index.html" title="Light sculpture — drag to orbit" sandbox="allow-scripts allow-same-origin" onLoad={update}/>}</>;
+ return <>{enabled&&<iframe className="light-motion-art" style={{opacity:frameReady?1:0}} ref={frame} src="/motion/index.html" title="Light sculpture — drag to orbit" sandbox="allow-scripts allow-same-origin" onLoad={update}/>}</>;
 }

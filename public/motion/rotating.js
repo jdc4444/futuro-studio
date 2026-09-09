@@ -1043,6 +1043,7 @@
 
  function poseNature(angle){if(current===15)poseVolcano(angle);if(current===16)poseImpact(angle);if(current===17)poseFlock(angle);if(current===20)poseFlight(flightStudies[0],angle);if(current===21)poseButterflies(angle);if(current===22)poseHive(angle)}
 
+ let frameConfigured=false,frameAnnounced=false;
  let lightCentered=false;const birdOffset=new T.Vector3(),inverseBirdRotation=new T.Quaternion();
  let current=22,t=0,running=true,speed=1,last=performance.now(),drag=false,px=0,py=0,yaw=.58,pitch=.24;
  const detail=['Counter-rotating fractal blocks · 36-second seamless cycle','Hypnos & axial planes · 36-second seamless cycle','Slow expansion · short smoke tail','Broken orbital rings · 36-second seamless cycle','Sequential stair turns · 36-second seamless cycle','Wind-blown tree & exposed roots · 36-second seamless cycle','White meridians & black chamber · 36-second seamless cycle','Slices & matching projections · 36-second seamless cycle','A wave wrapped onto a sphere · 36-second seamless cycle','Moving ridges on a continuous surface · 36-second seamless cycle','Blue whale cross-sections · 36-second seamless cycle','Setback sections & floor projection · 36-second seamless cycle','Orbits / square sections / projections · stylized scale','Opposing sides / rotating top & bottom · 36-second assembly cycle','Track frame / axial assembly · 36-second cycle','Lava / ash / rotating strata · 36-second cycle','One contour surface / lift / crater · 36-second cycle','850 birds / wingbeats / square sections · 36-second cycle','Rolling ribbon / revolving sections · 36-second cycle','Hollow spiral / rotating levels · 36-second cycle','Two flocks / parting & rejoining · 36-second cycle','Hinged wings / drifting paths / square sections · 36-second cycle','Half hive / exposed honeycomb / bees · 36-second cycle','Wild olive / cross-sectional contours · 36-second cycle'];
@@ -1083,11 +1084,12 @@
    mesh.position.set(0,0,0);
    if(lightCentered){group.updateWorldMatrix(true,false);group.getWorldQuaternion(inverseBirdRotation).invert();birdOffset.set(.55,.50,0).applyQuaternion(camera.quaternion).applyQuaternion(inverseBirdRotation);mesh.position.copy(birdOffset)}
   }
-  renderer.render(scene,camera);requestAnimationFrame(draw)
+  renderer.render(scene,camera);if(frameConfigured&&!frameAnnounced){frameAnnounced=true;parent.postMessage({type:'book-motion-painted',study:current},'*');}requestAnimationFrame(draw)
  }
   window.addEventListener('message',event=>{
  if(event.source!==parent||event.data?.type!=='book-motion')return;
  const {study,playing,centered,cameraAngle}=event.data;
+ frameConfigured=true;frameAnnounced=false;
  if(typeof centered==='boolean'){
   lightCentered=centered;
   renderer.domElement.style.width=centered?'100%':'';
