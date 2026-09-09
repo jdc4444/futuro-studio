@@ -11,5 +11,5 @@ export function ContactInput({value,onChange,disabled}:{value:string;onChange:(v
   setCaret(Math.max(2,Math.min(field.clientWidth-2,Math.max(0,(field.clientWidth-full)/2)+prefix-field.scrollLeft)));
  }
  useEffect(()=>{const field=input.current;if(!field)return;const observer=new ResizeObserver(update);observer.observe(field);void document.fonts.ready.then(update);update();return()=>observer.disconnect()},[value,disabled]);
- return <div className="futuro-input-wrap"><input ref={input} autoFocus aria-label="Your message" value={value} onChange={e=>onChange(e.target.value)} onSelect={update} onScroll={update} onFocus={update} onBlur={()=>setCaret(null)} required maxLength={5000} disabled={disabled} autoComplete="off" enterKeyHint="send"/>{caret!==null&&<span aria-hidden="true" className="futuro-dot-caret" style={{left:caret}}/>}</div>;
+ return <div className="futuro-input-wrap"><input ref={input} autoFocus aria-label="Your message" value={value} onChange={e=>onChange(e.target.value)} onSelect={update} onScroll={update} onFocus={update} onBlur={()=>setCaret(null)} required maxLength={5000} readOnly={disabled} aria-busy={disabled} autoComplete="off" enterKeyHint="send"/>{caret!==null&&<span aria-hidden="true" className="futuro-dot-caret" style={{left:caret}}/>}</div>;
 }

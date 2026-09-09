@@ -63,7 +63,8 @@ export default function Home(){
  <p>We develop and direct moving images for artists, brands and cultural institutions, bringing together live action, animation and emerging tools. Our speculative projects explore folklore, architecture, technology and the people who move between them.</p>
  </section>}
  {view==='contact'&&<form className="futuro-contact-form" onSubmit={submit} style={{fontSize:logoSize}} aria-label="Send a message">
- {status==='sent'?<div className="futuro-sent" role="status">sent</div>:<><ContactInput value={message} onChange={setMessage} disabled={status==='sending'}/>{(status==='sending'||error)&&<div className="futuro-form-note" aria-live="polite">{status==='sending'?'Sending…':error}</div>}</>}
+ <ContactInput value={message} onChange={setMessage} disabled={status==='sending'||status==='sent'}/>
+ <div className="futuro-form-note" aria-live="polite">{status==='sending'||status==='sent'?'Sending…':error}</div>
  </form>}
  </main>
  <button className="futuro-information" aria-pressed={view==='information'} onClick={()=>{setHover(false);setView(v=>v==='information'?'home':'information')}} disabled={status==='sending'}>Information</button>
