@@ -1,0 +1,173 @@
+[
+  {
+    "heading": "Major",
+    "body": "Raleway",
+    "mode": "sentence",
+    "reverse": false,
+    "id": 1,
+    "label": "01 / Major + Raleway",
+    "detail": "Raleway: sentence / Major: lowercase"
+  },
+  {
+    "heading": "Major",
+    "body": "Raleway",
+    "mode": "upper",
+    "reverse": false,
+    "id": 2,
+    "label": "02 / Major + Raleway",
+    "detail": "Raleway: upper / Major: lowercase"
+  },
+  {
+    "heading": "Major",
+    "body": "Raleway",
+    "mode": "lower",
+    "reverse": false,
+    "id": 3,
+    "label": "03 / Major + Raleway",
+    "detail": "Raleway: lower / Major: lowercase"
+  },
+  {
+    "heading": "Major",
+    "body": "Dots",
+    "mode": "sentence",
+    "reverse": false,
+    "id": 4,
+    "label": "04 / Major + Dots",
+    "detail": "Dots: sentence / Major: lowercase"
+  },
+  {
+    "heading": "Major",
+    "body": "Dots",
+    "mode": "upper",
+    "reverse": false,
+    "id": 5,
+    "label": "05 / Major + Dots",
+    "detail": "Dots: upper / Major: lowercase"
+  },
+  {
+    "heading": "Dots",
+    "body": "Major",
+    "mode": "upper",
+    "reverse": true,
+    "id": 11,
+    "label": "11 / Dots + Major",
+    "detail": "Dots: upper / Major: lowercase"
+  },
+  {
+    "id": 13,
+    "heading": "Raleway",
+    "body": "Raleway",
+    "mode": "sentence",
+    "reverse": false,
+    "label": "13 / All Raleway",
+    "detail": "Raleway throughout / sentence case"
+  },
+  {
+    "id": 14,
+    "heading": "Raleway Caps",
+    "body": "Raleway",
+    "mode": "sentence",
+    "reverse": false,
+    "label": "14 / All Raleway - caps headers",
+    "detail": "Uppercase headers / sentence-case text"
+  },
+  {
+    "id": 15,
+    "heading": "Sul Sans Caps",
+    "body": "Sul Sans",
+    "mode": "sentence",
+    "reverse": false,
+    "label": "15 / All Sul Sans",
+    "detail": "Uppercase headers / sentence-case text"
+  },
+  {
+    "id": 16,
+    "heading": "Sul Mono Caps",
+    "body": "Sul Mono",
+    "mode": "sentence",
+    "reverse": false,
+    "label": "16 / All Sul Mono",
+    "detail": "Uppercase headers / sentence-case text"
+  },
+  {
+    "id": 17,
+    "heading": "Atlas Grotesk Caps",
+    "body": "Atlas Grotesk",
+    "mode": "sentence",
+    "reverse": false,
+    "label": "17 / All Atlas Grotesk",
+    "detail": "Uppercase headers / sentence-case text"
+  },
+  {
+    "id": 18,
+    "heading": "Sul Mono Caps",
+    "body": "Sul Sans",
+    "mode": "sentence",
+    "reverse": false,
+    "label": "18 / Sul Mono + Sul Sans",
+    "detail": "Uppercase headers / sentence-case text"
+  },
+  {
+    "id": 19,
+    "heading": "Sul Mono Caps",
+    "body": "Atlas Grotesk",
+    "mode": "sentence",
+    "reverse": false,
+    "label": "19 / Sul Mono + Atlas Grotesk",
+    "detail": "Uppercase headers / sentence-case text"
+  },
+  {
+    "id": 20,
+    "heading": "League Mono Caps",
+    "body": "League Mono",
+    "mode": "sentence",
+    "reverse": false,
+    "label": "20 / All League Mono",
+    "detail": "Uppercase headers / sentence-case text"
+  },
+  {
+    "id": 21,
+    "heading": "Switzer Caps",
+    "body": "Switzer",
+    "mode": "sentence",
+    "reverse": false,
+    "label": "21 / All Switzer",
+    "detail": "Uppercase headers / sentence-case text"
+  },
+  {
+    "id": 22,
+    "heading": "Clash Grotesk Caps",
+    "body": "Clash Grotesk",
+    "mode": "sentence",
+    "reverse": false,
+    "label": "22 / All Clash Grotesk",
+    "detail": "Uppercase headers / sentence-case text"
+  },
+  {
+    "id": 23,
+    "heading": "Manrope Caps",
+    "body": "Manrope",
+    "mode": "sentence",
+    "reverse": false,
+    "label": "23 / All Manrope",
+    "detail": "Uppercase headers / sentence-case text"
+  },
+  {
+    "id": 24,
+    "heading": "Epilogue Caps",
+    "body": "Epilogue",
+    "mode": "sentence",
+    "reverse": false,
+    "label": "24 / All Epilogue",
+    "detail": "Uppercase headers / sentence-case text"
+  },
+  {
+    "id": 25,
+    "heading": "General Sans Caps",
+    "body": "General Sans",
+    "mode": "sentence",
+    "reverse": false,
+    "label": "25 / All General Sans",
+    "detail": "Uppercase headers / sentence-case text"
+  }
+]

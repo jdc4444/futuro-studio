@@ -1,0 +1,212 @@
+@font-face {
+  font-family: 'Script Japanese';
+  font-style: normal;
+  font-weight: 100;
+  font-display: swap;
+  src: url('/fonts/script-japanese.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Han';
+  font-style: normal;
+  font-weight: 100;
+  font-display: swap;
+  src: url('/fonts/script-han.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Hangul';
+  font-style: normal;
+  font-weight: 100;
+  font-display: swap;
+  src: url('/fonts/script-hangul.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Arabic';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-arabic.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Hebrew';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-hebrew.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Cyrillic';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-cyrillic.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Greek';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-greek.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Armenian';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-armenian.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Georgian';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-georgian.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Odia';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-odia.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Devanagari';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-devanagari.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Bengali';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-bengali.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Thai';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-thai.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Tamil';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-tamil.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Telugu';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-telugu.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Ethiopic';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-ethiopic.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Kannada';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-kannada.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Malayalam';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-malayalam.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Myanmar';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-myanmar.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Gujarati';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-gujarati.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Khmer';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-khmer.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Gurmukhi';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-gurmukhi.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Sinhala';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-sinhala.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Script Lao';
+  font-style: normal;
+  font-weight: 100;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/script-lao.ttf') format('truetype');
+}

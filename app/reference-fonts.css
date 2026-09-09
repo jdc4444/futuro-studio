@@ -1,0 +1,21 @@
+@font-face {
+  font-family: 'Bungee Hairline';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/reference-1.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Major Mono Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/reference-2.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Raleway Dots';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/reference-3.ttf) format('truetype');
+}

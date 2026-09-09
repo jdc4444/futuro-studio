@@ -1,0 +1,210 @@
+@font-face {
+  font-family: 'Major Japanese';
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+  src: url('/fonts/major-japanese.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Han';
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+  src: url('/fonts/major-han.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Hangul';
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+  src: url('/fonts/major-hangul.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Hebrew';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-hebrew.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Greek';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-greek.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Armenian';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-armenian.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Georgian';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-georgian.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Odia';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-odia.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Bengali';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-bengali.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Thai';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-thai.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Tamil';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-tamil.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Telugu';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-telugu.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Ethiopic';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-ethiopic.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Kannada';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-kannada.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Malayalam';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-malayalam.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Myanmar';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-myanmar.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Gujarati';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-gujarati.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Khmer';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-khmer.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Gurmukhi';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-gurmukhi.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Sinhala';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-sinhala.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Lao';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-lao.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Arabic';
+  font-style: normal;
+  font-weight: 100;
+  font-display: swap;
+  src: url('/fonts/major-arabic.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Cyrillic';
+  font-style: normal;
+  font-weight: 200;
+  font-stretch: normal;
+  font-display: swap;
+  src: url('/fonts/major-cyrillic.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Major Devanagari';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/major-devanagari.ttf') format('truetype');
+}

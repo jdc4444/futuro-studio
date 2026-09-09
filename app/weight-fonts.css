@@ -1,0 +1,221 @@
+@font-face {
+  font-family: 'Weight Script Japanese';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/weight-japanese-0.woff2') format('woff2');
+  unicode-range: U+306e, U+5149, U+7121, U+9650;
+}
+@font-face {
+  font-family: 'Weight Script Han';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/weight-han-0.woff2') format('woff2');
+  unicode-range: U+4e4b, U+5149, U+65e0, U+7121, U+9650;
+}
+@font-face {
+  font-family: 'Weight Script Hangul';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/weight-hangul-0.woff2') format('woff2');
+  unicode-range: U+20, U+1106-1107, U+1112, U+1161, U+116e, U+1175, U+11ab, U+11be, U+b9c8, U+b9cc, U+b9df, U+bb34, U+bb38, U+bb4b, U+bbf8, U+bbfc, U+bc0f, U+bc14, U+bc18, U+bc2b, U+bd80, U+bd84, U+bd97, U+be44, U+be48, U+be5b, U+d558, U+d55c, U+d56f, U+d6c4, U+d6c8, U+d6db, U+d788, U+d78c, U+d79f;
+}
+@font-face {
+  font-family: 'Weight Script Arabic';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-arabic-0.woff2') format('woff2');
+  unicode-range: U+20, U+623-624, U+626-628, U+62a, U+62d, U+62f, U+631, U+634, U+644-648, U+64a, U+654, U+6cc, U+200c;
+}
+@font-face {
+  font-family: 'Weight Script Hebrew';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-hebrew-0.woff2') format('woff2');
+  unicode-range: U+20, U+5d0, U+5d5, U+5d9, U+5e0-5e1, U+5e4, U+5e8;
+}
+@font-face {
+  font-family: 'Weight Script Cyrillic';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-cyrillic-0.woff2') format('woff2');
+  unicode-range: U+20, U+306, U+406, U+410-413, U+415-41b, U+41d-41e, U+420-422, U+425, U+427-428, U+42b, U+42d, U+42f-433, U+435-43b, U+43d-43e, U+440-442, U+445, U+447-448, U+44b, U+44d, U+44f, U+456, U+49a-49b, U+4ae-4af, U+4c1-4c2, U+4d0-4d1, U+4d6-4d7;
+}
+@font-face {
+  font-family: 'Weight Script Greek';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-greek-0.woff2') format('woff2');
+  unicode-range: U+20, U+301, U+386, U+388, U+38a, U+38c, U+38f, U+391, U+395, U+399, U+39f-3a1, U+3a3, U+3a6, U+3a9, U+3ac-3ad, U+3af, U+3b1, U+3b5, U+3b9, U+3bf-3c2, U+3c6, U+3c9, U+3cc, U+3ce;
+}
+@font-face {
+  font-family: 'Weight Script Armenian';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-armenian-0.woff2') format('woff2');
+  unicode-range: U+20, U+531, U+535, U+53c, U+545-546, U+548, U+54b, U+54d-54e, U+550, U+552, U+561, U+565, U+56c, U+575-576, U+578, U+57b, U+57d-57e, U+580, U+582;
+}
+@font-face {
+  font-family: 'Weight Script Georgian';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-georgian-0.woff2') format('woff2');
+  unicode-range: U+20, U+10d0, U+10d4, U+10d7-10d8, U+10da, U+10dc-10dd, U+10e0-10e1, U+10e3, U+1c90, U+1c94, U+1c97-1c98, U+1c9a, U+1c9c-1c9d, U+1ca0-1ca1, U+1ca3;
+}
+@font-face {
+  font-family: 'Weight Script Odia';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-odia-0.woff2') format('woff2');
+  unicode-range: U+20, U+b05-b06, U+b15, U+b24, U+b28, U+b32, U+b3e, U+b47, U+b4b, U+b4d;
+}
+@font-face {
+  font-family: 'Weight Script Devanagari';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-devanagari-0.woff2') format('woff2');
+  unicode-range: U+20, U+902, U+905, U+915, U+924, U+928, U+92a, U+930, U+936, U+93e, U+94d;
+}
+@font-face {
+  font-family: 'Weight Script Bengali';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-bengali-0.woff2') format('woff2');
+  unicode-range: U+20, U+985-986, U+9ae, U+9b2, U+9b8, U+9be, U+9c0, U+9c7, U+9cb;
+}
+@font-face {
+  font-family: 'Weight Script Thai';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-thai-0.woff2') format('woff2');
+  unicode-range: U+e07, U+e15, U+e19, U+e2a, U+e2d, U+e31, U+e41, U+e4c;
+}
+@font-face {
+  font-family: 'Weight Script Tamil';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-tamil-0.woff2') format('woff2');
+  unicode-range: U+20, U+b8e, U+b92, U+baf, U+bb1-bb3, U+bbf, U+bc8, U+bcd;
+}
+@font-face {
+  font-family: 'Weight Script Telugu';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-telugu-0.woff2') format('woff2');
+  unicode-range: U+20, U+c02, U+c05, U+c15, U+c24, U+c28, U+c3e-c3f;
+}
+@font-face {
+  font-family: 'Weight Script Ethiopic';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-ethiopic-0.woff2') format('woff2');
+  unicode-range: U+20, U+1203, U+1208, U+120c, U+122d, U+1230, U+1265, U+1295, U+12c8, U+12cd, U+12e8;
+}
+@font-face {
+  font-family: 'Weight Script Kannada';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-kannada-0.woff2') format('woff2');
+  unicode-range: U+20, U+c82, U+c85, U+c95, U+ca4, U+ca8, U+cac, U+cb3, U+cc1, U+cc6;
+}
+@font-face {
+  font-family: 'Weight Script Malayalam';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-malayalam-0.woff2') format('woff2');
+  unicode-range: U+20, U+d02, U+d05, U+d15, U+d24, U+d28, U+d2a, U+d2e-d30, U+d36, U+d3e, U+d4d;
+}
+@font-face {
+  font-family: 'Weight Script Myanmar';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-myanmar-0.woff2') format('woff2');
+  unicode-range: U+1004, U+1006, U+1019, U+101c, U+1021, U+102f, U+1032, U+1036-1038, U+103a;
+}
+@font-face {
+  font-family: 'Weight Script Gujarati';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-gujarati-0.woff2') format('woff2');
+  unicode-range: U+20, U+a82, U+a85, U+a95, U+aa4, U+aa8, U+aaa, U+ab0, U+ab6, U+abe, U+acd;
+}
+@font-face {
+  font-family: 'Weight Script Khmer';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-khmer-0.woff2') format('woff2');
+  unicode-range: U+1782, U+1785, U+1789, U+1791, U+1793-1794, U+1796, U+1798, U+179b, U+17b6, U+17b8, U+17ba, U+17cb, U+17d2;
+}
+@font-face {
+  font-family: 'Weight Script Gurmukhi';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-gurmukhi-0.woff2') format('woff2');
+  unicode-range: U+20, U+a05, U+a24, U+a28, U+a30, U+a38, U+a3c, U+a40, U+a4c, U+a70;
+}
+@font-face {
+  font-family: 'Weight Script Sinhala';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-sinhala-0.woff2') format('woff2');
+  unicode-range: U+20, U+d85-d86, U+d9a, U+dad, U+db1, U+dba, U+dbd, U+dca, U+dcf, U+dd9-dda, U+ddc-ddd;
+}
+@font-face {
+  font-family: 'Weight Script Lao';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/weight-lao-0.woff2') format('woff2');
+  unicode-range: U+e87, U+e94, U+e99, U+e9b, U+ea7, U+eaa-eab, U+ead, U+eb0-eb2, U+eb4, U+ec0-ec1, U+ec8;
+}
+@font-face {
+  font-family: 'Light Raleway';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/weight-latin-0.woff2') format('woff2');
+  unicode-range: U+20, U+41-50, U+52-57, U+59-5a, U+61-70, U+72-77, U+79-7a, U+c0-c2, U+c4, U+c7-cf, U+d2-d4, U+d6, U+d9-dd, U+e0-e2, U+e4, U+e7-ef, U+f2-f4, U+f6, U+f9-fd, U+ff, U+102-103, U+106-109, U+10c-10f, U+114-115, U+11a-11f, U+122-125, U+12c-12d, U+131, U+134-137, U+139-13e, U+141-148, U+14e-14f, U+154-165, U+16c-16d, U+174-17a, U+17d-17e, U+1cd-1d4, U+1d7-1dc, U+1e6-1e9, U+1f0, U+1f4-1f5, U+1f8-1f9, U+21e-21f, U+228-229, U+2bb, U+300-302, U+306, U+308, U+30c, U+323, U+327, U+400-401, U+403, U+406-407, U+40c-40d, U+410-413, U+415-41b, U+41d-41e, U+420-422, U+425, U+427-428, U+42b, U+42d, U+42f-433, U+435-43b, U+43d-43e, U+440-442, U+445, U+447-448, U+44b, U+44d, U+44f-451, U+453, U+456-457, U+45c-45d, U+49a-49b, U+4ae-4af, U+4c1-4c2, U+4d0-4d3, U+4d6-4d7, U+4dc-4df, U+4e4-4e7, U+4ec-4ed, U+4f4-4f5, U+4f8-4f9, U+1e04-1e05, U+1e08-1e09, U+1e0c-1e0d, U+1e10-1e11, U+1e1c-1e1d, U+1e24-1e29, U+1e2e-1e33, U+1e36-1e37, U+1e3e-1e3f, U+1e42-1e43, U+1e46-1e47, U+1e54-1e55, U+1e5a-1e5b, U+1e62-1e63, U+1e6c-1e6d, U+1e7e-1e85, U+1e88-1e89, U+1e90-1e93, U+1e97, U+1ea0-1ea1, U+1ea4-1ea7, U+1eac-1eb1, U+1eb6-1eb9, U+1ebe-1ec1, U+1ec6-1ec7, U+1eca-1ecd, U+1ed0-1ed3, U+1ed8-1ed9, U+1ee4-1ee5, U+1ef2-1ef5;
+}

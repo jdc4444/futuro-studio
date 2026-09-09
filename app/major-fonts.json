@@ -1,0 +1,98 @@
+{
+  "Japanese": {
+    "family": "Major Japanese",
+    "weight": 200
+  },
+  "Han": {
+    "family": "Major Han",
+    "weight": 200
+  },
+  "Hangul": {
+    "family": "Major Hangul",
+    "weight": 200
+  },
+  "Hebrew": {
+    "family": "Major Hebrew",
+    "weight": 200
+  },
+  "Greek": {
+    "family": "Major Greek",
+    "weight": 200
+  },
+  "Armenian": {
+    "family": "Major Armenian",
+    "weight": 200
+  },
+  "Georgian": {
+    "family": "Major Georgian",
+    "weight": 200
+  },
+  "Odia": {
+    "family": "Major Odia",
+    "weight": 200
+  },
+  "Bengali": {
+    "family": "Major Bengali",
+    "weight": 200
+  },
+  "Thai": {
+    "family": "Major Thai",
+    "weight": 200
+  },
+  "Tamil": {
+    "family": "Major Tamil",
+    "weight": 200
+  },
+  "Telugu": {
+    "family": "Major Telugu",
+    "weight": 200
+  },
+  "Ethiopic": {
+    "family": "Major Ethiopic",
+    "weight": 200
+  },
+  "Kannada": {
+    "family": "Major Kannada",
+    "weight": 200
+  },
+  "Malayalam": {
+    "family": "Major Malayalam",
+    "weight": 200
+  },
+  "Myanmar": {
+    "family": "Major Myanmar",
+    "weight": 200
+  },
+  "Gujarati": {
+    "family": "Major Gujarati",
+    "weight": 200
+  },
+  "Khmer": {
+    "family": "Major Khmer",
+    "weight": 200
+  },
+  "Gurmukhi": {
+    "family": "Major Gurmukhi",
+    "weight": 200
+  },
+  "Sinhala": {
+    "family": "Major Sinhala",
+    "weight": 200
+  },
+  "Lao": {
+    "family": "Major Lao",
+    "weight": 200
+  },
+  "Arabic": {
+    "family": "Major Arabic",
+    "weight": 100
+  },
+  "Cyrillic": {
+    "family": "Major Cyrillic",
+    "weight": 200
+  },
+  "Devanagari": {
+    "family": "Major Devanagari",
+    "weight": 300
+  }
+}
