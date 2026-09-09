@@ -64,23 +64,19 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
   const scrollRoot=useRef<HTMLDivElement>(null);
   const intro=useRef<HTMLElement>(null);
   const cards=useRef<(HTMLElement|null)[]>([]);
+  const details=useRef<HTMLDivElement>(null);
   const end=useRef<HTMLElement>(null);
   const [expanded,setExpanded]=useState<number|null>(null);
-  const [opening,setOpening]=useState(false);
-  const openingRef=useRef(false);
-  const [closing,setClosing]=useState<{target:number;offset:number;height:number}|null>(null);
-  const closingRef=useRef(false);
-  const frozenScroll=useRef(0);
-  const closingPanel=useRef<HTMLDivElement>(null);
   const expandedRef=useRef<number|null>(null);
   const currentPreview=useRef(-1);
-  const pendingAnchor=useRef<{index:number}|null>(null);
+  const pendingAnchor=useRef<{index:number;enter:boolean}|null>(null);
   const lastScroll=useRef(0);
   const frame=useRef(0);
   const gesture=useRef(createScrollGestureGate());
   const touch=useRef<{startY:number;consumed:boolean}|null>(null);
-  const destination=useRef<number|null>(null);
   const animation=useRef(0);
+  const travel=useRef<'preview'|'project'|null>(null);
+  const refresh=useRef(()=>{});
   const last=selectedProjects.length-1;
 
   function selectPreview(index:number){
@@ -88,27 +84,53 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     currentPreview.current=index;
   }
 
-  function scrollToPreview(index:number,wrap=false,smooth=true){
-    const scroller=scrollRoot.current;
-    const card=wrap?end.current:index===-1?intro.current:cards.current[index];
-    if(!scroller||!card)return;
+  function cancelScroll(){
     cancelAnimationFrame(animation.current);
-    selectPreview(index);
+    animation.current=0;travel.current=null;
+  }
+
+  function elementTop(element:HTMLElement){
+    const scroller=scrollRoot.current!;
+    return anchoredScroll(scroller.scrollTop,scroller.getBoundingClientRect().top,element.getBoundingClientRect().top);
+  }
+
+  function scrollToElement(element:HTMLElement,kind:'preview'|'project',smooth=true,complete?:()=>void){
+    const scroller=scrollRoot.current;
+    if(!scroller)return;
+    cancelScroll();
     const start=scroller.scrollTop;
-    const target=anchoredScroll(start,scroller.getBoundingClientRect().top,card.getBoundingClientRect().top);
-    destination.current=target;
+    const finish=()=>{
+      animation.current=0;travel.current=null;
+      complete?.();refresh.current();
+    };
     if(!smooth||matchMedia('(prefers-reduced-motion: reduce)').matches){
-      scroller.scrollTop=target;return;
+      scroller.scrollTop=elementTop(element);finish();return;
     }
-    // Own the transition from start to finish; native smooth scrolling and
-    // scroll snapping can otherwise fight a subsequent gesture.
-    const began=performance.now();
+    travel.current=kind;
+    const began=performance.now(),duration=kind==='project'?520:420;
     const step=(now:number)=>{
-      const progress=Math.min(1,(now-began)/420);
-      scroller.scrollTop=start+(target-start)*(1-Math.pow(1-progress,3));
-      animation.current=progress<1?requestAnimationFrame(step):0;
+      const progress=Math.min(1,(now-began)/duration);
+      const eased=kind==='project'
+        ? progress<.5?4*progress*progress*progress:1-Math.pow(-2*progress+2,3)/2
+        : 1-Math.pow(1-progress,3);
+      scroller.scrollTop=start+(elementTop(element)-start)*eased;
+      if(progress<1)animation.current=requestAnimationFrame(step);
+      else finish();
     };
     animation.current=requestAnimationFrame(step);
+  }
+
+  function scrollToPreview(index:number,wrap=false,smooth=true){
+    const card=wrap?end.current:index===-1?intro.current:cards.current[index];
+    if(!card)return;
+    selectPreview(index);
+    scrollToElement(card,'preview',smooth);
+  }
+
+  function enterDetails(){
+    if(details.current)scrollToElement(details.current,'project',true,()=>{
+      details.current?.focus({preventScroll:true});
+    });
   }
 
   function advance(direction:number){
@@ -118,106 +140,48 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     scrollToPreview(next>last?-1:next,next>last);
   }
 
-  function finishClose(index:number){
+  function resetToPreview(index:number){
+    cancelScroll();
     gesture.current.hold();
     if(touch.current)touch.current.consumed=true;
     selectPreview(index);
     onIntroChange(index===-1);onFootageChange(index!==-1);
-    pendingAnchor.current={index};
+    pendingAnchor.current={index,enter:false};
     expandedRef.current=null;
-    closingRef.current=false;
-    setClosing(null);
     setExpanded(null);
   }
 
-  function stopAtPreview(index:number,fold=false){
-    if(closingRef.current||openingRef.current)return;
-    const scroller=scrollRoot.current;
-    const card=expandedRef.current===null?null:cards.current[expandedRef.current];
-    if(!fold||!scroller||!card||matchMedia('(prefers-reduced-motion: reduce)').matches){
-      finishClose(index);return;
-    }
-    // Hold the live page in its current position while its visible surface
-    // folds up to uncover the destination preview underneath.
-    gesture.current.hold();
-    if(touch.current)touch.current.consumed=true;
-    cancelAnimationFrame(animation.current);animation.current=0;
-    closingRef.current=true;
-    frozenScroll.current=scroller.scrollTop;
-    setClosing({target:index,offset:scroller.scrollTop-card.offsetTop,height:card.offsetHeight});
+  function returnToPreview(){
+    const index=expandedRef.current;
+    if(index===null)return;
+    const card=cards.current[index];
+    if(card)scrollToElement(card,'project',true,()=>resetToPreview(index));
   }
-
-  useLayoutEffect(()=>{
-    if(!closing)return;
-    const panel=closingPanel.current;
-    if(!panel?.animate){finishClose(closing.target);return;}
-    panel.querySelectorAll('video').forEach(video=>video.pause());
-    let cancelled=false;
-    const fold=panel.animate([
-      {clipPath:'inset(0 0 0 0)'},
-      {clipPath:'inset(0 0 100% 0)'},
-    ],{duration:440,easing:'cubic-bezier(.65,0,.35,1)',fill:'forwards'});
-    fold.finished.then(()=>{if(!cancelled)finishClose(closing.target);}).catch(()=>{});
-    return()=>{cancelled=true;fold.cancel();};
-  },[closing]);
 
   useLayoutEffect(()=>{
     onOpenChange(expanded!==null);
-    const scroller=scrollRoot.current;
-    if(!scroller)return;
-    const anchor=pendingAnchor.current;
-    if(anchor){
-      // Collapsing content above this preview must not carry any momentum or
-      // overshoot into another project.
-      scrollToPreview(anchor.index,false,false);
-      pendingAnchor.current=null;
-      if(document.activeElement===document.body)scroller.focus({preventScroll:true});
-    }
     expandedRef.current=expanded;
+    const scroller=scrollRoot.current,anchor=pendingAnchor.current;
+    if(!scroller)return;
+    if(anchor){
+      // Keep the persistent tile fixed when inserting or removing its details.
+      // On the downward exit, this also compensates for content removed above.
+      const card=anchor.index===-1?intro.current:cards.current[anchor.index];
+      if(card)scroller.scrollTop=elementTop(card);
+      pendingAnchor.current=null;
+      if(anchor.enter)enterDetails();
+      else if(document.activeElement===document.body)scroller.focus({preventScroll:true});
+    }
     lastScroll.current=scroller.scrollTop;
-    if(openingRef.current)frozenScroll.current=scroller.scrollTop;
   },[expanded,onOpenChange]);
 
-  function finishOpen(){
-    openingRef.current=false;
-    setOpening(false);
-    gesture.current.hold();
-    if(touch.current)touch.current.consumed=true;
-    lastScroll.current=scrollRoot.current?.scrollTop||0;
-  }
-
-  useEffect(()=>{
-    if(!opening||expanded===null)return;
-    const panel=closingPanel.current,scroller=scrollRoot.current;
-    if(!panel?.animate||!scroller){finishOpen();return;}
-    let cancelled=false,completed=false,unfold:Animation|undefined;
-    const complete=()=>{
-      if(cancelled||completed)return;
-      completed=true;clearTimeout(deadline);finishOpen();
-    };
-    // Keep the animated layer viewport-sized, regardless of gallery length.
-    // A missed or cancelled browser animation must never lock the page open.
-    const deadline=setTimeout(complete,520);
-    try{
-      unfold=panel.animate([
-        {clipPath:'inset(0 0 100% 0)'},
-        {clipPath:'inset(0 0 0 0)'},
-      ],{duration:440,easing:'cubic-bezier(.65,0,.35,1)',fill:'forwards'});
-      unfold.finished.then(complete,complete);
-    }catch{complete();}
-    return()=>{cancelled=true;clearTimeout(deadline);unfold?.cancel();};
-  },[opening,expanded]);
-
   function open(index:number){
-    if(closingRef.current||openingRef.current)return;
-    gesture.current.release();
-    destination.current=null;
-    currentPreview.current=index;
+    cancelScroll();gesture.current.release();
+    selectPreview(index);
     onIntroChange(false);onFootageChange(false);
-    pendingAnchor.current={index};
-    openingRef.current=!matchMedia('(prefers-reduced-motion: reduce)').matches;
-    frozenScroll.current=cards.current[index]?.offsetTop||0;
-    setOpening(openingRef.current);
+    if(expandedRef.current===index){enterDetails();return;}
+    pendingAnchor.current={index,enter:true};
+    expandedRef.current=index;
     setExpanded(index);
   }
 
@@ -227,84 +191,69 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     const inspect=()=>{
       frame.current=0;
       if(suspended||pendingAnchor.current)return;
-      if(closingRef.current||openingRef.current){scroller.scrollTop=frozenScroll.current;return;}
       const y=scroller.scrollTop,delta=y-lastScroll.current;
       lastScroll.current=y;
       const height=scroller.clientHeight;
-      const inIntro=expandedRef.current===null&&(
-        Math.abs(y-(intro.current?.offsetTop||0))<height*.5||
-        Math.abs(y-(end.current?.offsetTop||Infinity))<height*.5
-      );
-      onIntroChange(inIntro);
       const index=expandedRef.current;
       if(index!==null){
+        onIntroChange(false);onFootageChange(false);
         const card=cards.current[index];
-        if(!card)return;
+        if(!card||travel.current==='project')return;
         const bounds=card.getBoundingClientRect();
         const top=bounds.top-scroller.getBoundingClientRect().top;
-        onFootageChange(false);
         const exit=projectExit(top,top+bounds.height,delta);
-        if(exit==='next')stopAtPreview(index===last?-1:index+1);
-        else if(exit==='preview')stopAtPreview(index,true);
+        if(exit==='next')resetToPreview(index===last?-1:index+1);
+        else if(exit==='preview')resetToPreview(index);
         return;
       }
-      // Native touch or keyboard momentum can finish after the expanded page
-      // has collapsed. A settled preview always owns its exact landing point.
+      const inIntro=Math.abs(y-(intro.current?.offsetTop||0))<height*.5||
+        Math.abs(y-(end.current?.offsetTop||Infinity))<height*.5;
+      onIntroChange(inIntro);onFootageChange(!inIntro);
       if(!animation.current){
         const preview=currentPreview.current===-1?intro.current:cards.current[currentPreview.current];
-        if(preview){
-          const target=anchoredScroll(y,scroller.getBoundingClientRect().top,preview.getBoundingClientRect().top);
-          if(Math.abs(y-target)>.5){
-            scrollToPreview(currentPreview.current,false,false);
-            return;
-          }
+        if(preview&&Math.abs(y-elementTop(preview))>.5){
+          // Catch residual touch momentum at the exact, full-screen tile.
+          scroller.scrollTop=elementTop(preview);
+          return;
         }
       }
-      onFootageChange(!inIntro);
       if(intro.current&&end.current&&loopDestination(y,intro.current.offsetTop,end.current.offsetTop)!==null){
         scrollToPreview(-1,false,false);
         gesture.current.hold();
         onIntroChange(true);onFootageChange(false);
-      }else if(destination.current!==null){
-        if(Math.abs(y-destination.current)<2)destination.current=null;
       }
     };
+    refresh.current=inspect;
     const onScroll=()=>{if(!frame.current)frame.current=requestAnimationFrame(inspect);};
+    const interruptProjectScroll=()=>{
+      if(travel.current!=='project')return;
+      cancelScroll();gesture.current.release();
+    };
     const onWheel=(event:WheelEvent)=>{
       if(suspended||event.ctrlKey||!event.deltaY)return;
-      const unit=event.deltaMode===1?16:event.deltaMode===2?scroller.clientHeight:1;
-      const amount=event.deltaY*unit;
-      if(closingRef.current||openingRef.current){
-        gesture.current.wheel(performance.now(),amount);gesture.current.hold();
-        event.preventDefault();return;
-      }
+      interruptProjectScroll();
+      const amount=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?scroller.clientHeight:1);
       if(gesture.current.wheel(performance.now(),amount)){event.preventDefault();return;}
       const index=expandedRef.current;
-      if(index===null){
-        event.preventDefault();advance(event.deltaY>0?1:-1);return;
-      }
+      if(index===null){event.preventDefault();advance(amount>0?1:-1);return;}
       const card=cards.current[index];
       if(!card)return;
-      // Apply project wheel movement directly so the browser cannot queue a
-      // separate smooth scroll that continues after we land on a preview.
       event.preventDefault();
+      const top=elementTop(card),bottom=top+card.offsetHeight;
       const nextY=scroller.scrollTop+amount;
-      if(nextY>=card.offsetTop+card.offsetHeight){
-        stopAtPreview(index===last?-1:index+1);
-      }else if(amount<0&&nextY<=card.offsetTop){
-        stopAtPreview(index,true);
+      if(nextY>=bottom){
+        scroller.scrollTop=bottom;resetToPreview(index===last?-1:index+1);
+      }else if(amount<0&&nextY<=top){
+        scroller.scrollTop=top;resetToPreview(index);
       }else scroller.scrollTop=nextY;
     };
     const onTouchStart=(event:TouchEvent)=>{
       if(suspended||event.touches.length!==1)return;
-      if(closingRef.current||openingRef.current)return;
-      gesture.current.release();
+      interruptProjectScroll();gesture.current.release();
       touch.current={startY:event.touches[0].clientY,consumed:false};
     };
     const onTouchMove=(event:TouchEvent)=>{
-      if(suspended)return;
-      if(closingRef.current||openingRef.current){event.preventDefault();return;}
-      if(event.touches.length!==1||!touch.current||expandedRef.current!==null)return;
+      if(suspended||event.touches.length!==1||!touch.current||expandedRef.current!==null)return;
       event.preventDefault();
       const distance=touch.current.startY-event.touches[0].clientY;
       if(!touch.current.consumed&&Math.abs(distance)>36){
@@ -314,16 +263,15 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     const onTouchEnd=()=>{touch.current=null;};
     const onKeyDown=(event:KeyboardEvent)=>{
       if(suspended)return;
-      if(closingRef.current||openingRef.current){
-        if(['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(event.key))event.preventDefault();
-        return;
-      }
-      if(expandedRef.current!==null)return;
       const target=event.target as HTMLElement;
       if(target.closest('input,textarea,select,[contenteditable=true]'))return;
       if(event.key===' '&&target.closest('button,a'))return;
       const direction=['ArrowDown','PageDown'].includes(event.key)||(event.key===' '&&!event.shiftKey)?1:
         ['ArrowUp','PageUp'].includes(event.key)||(event.key===' '&&event.shiftKey)?-1:0;
+      if(expandedRef.current!==null){
+        if(direction||event.key==='Home'||event.key==='End')interruptProjectScroll();
+        return;
+      }
       if(direction){event.preventDefault();if(!event.repeat)advance(direction);}
       else if(event.key==='Home'||event.key==='End'){
         event.preventDefault();if(!event.repeat)scrollToPreview(event.key==='Home'?-1:last);
@@ -343,7 +291,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     window.addEventListener('touchcancel',onTouchEnd);
     window.addEventListener('keydown',onKeyDown);
     return()=>{
-      resize.disconnect();
+      resize.disconnect();refresh.current=()=>{};
       scroller.removeEventListener('scroll',onScroll);
       window.removeEventListener('wheel',onWheel);
       window.removeEventListener('touchstart',onTouchStart);
@@ -352,7 +300,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       window.removeEventListener('touchcancel',onTouchEnd);
       window.removeEventListener('keydown',onKeyDown);
       cancelAnimationFrame(frame.current);frame.current=0;
-      cancelAnimationFrame(animation.current);animation.current=0;
+      cancelScroll();
     };
   },[last,suspended,onIntroChange,onFootageChange,onPreviewChange]);
 
@@ -363,32 +311,24 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     return()=>{playing.filter(video=>video.isConnected).forEach(video=>video.play().catch(()=>{}));};
   },[suspended]);
 
-  const transitionPreview=closing?closing.target:opening?expanded:null;
   return <div ref={scrollRoot} className="pilot-scroll" aria-label="Selected projects" tabIndex={0}
-    inert={suspended} data-suspended={suspended} data-open-project={expanded!==null} data-closing={closing!==null} data-opening={opening} onKeyDown={event=>{
+    inert={suspended} data-suspended={suspended} data-open-project={expanded!==null} onKeyDown={event=>{
       if(event.key!=='Escape'||expanded===null)return;
-      event.preventDefault();stopAtPreview(expanded,true);
+      event.preventDefault();returnToPreview();
     }}>
     <section ref={intro} className="pilot-project pilot-intro" aria-label="Futuro"/>
     {selectedProjects.map((project,index)=><section key={project.route} ref={node=>{cards.current[index]=node;}}
       className="pilot-project" data-project-route={project.route} data-expanded={expanded===index}
-      style={closing&&expanded===index?{height:closing.height}:undefined}
       aria-label={project.title} onFocus={event=>{
         if(expandedRef.current===null&&(event.target as HTMLElement).matches(':focus-visible')){
           scrollToPreview(index,false,false);
         }
       }}>
-      {expanded===index
-        ? <div ref={closingPanel} className="pilot-details" data-folding={closing!==null} data-opening={opening} inert={closing!==null||opening}
-            style={closing?{'--pilot-fold-offset':`${-closing.offset}px`} as CSSProperties:undefined}>
-            <div className="pilot-details-content"><ResumeEntries route={project.route}/></div>
-          </div>
-        : <Preview project={project} scrollRoot={scrollRoot} suspended={suspended} onOpen={()=>open(index)}/>}
+      <Preview project={project} scrollRoot={scrollRoot} suspended={suspended} onOpen={()=>open(index)}/>
+      {expanded===index&&<div ref={details} className="pilot-details" tabIndex={-1}>
+        <ResumeEntries route={project.route}/>
+      </div>}
     </section>)}
     <section ref={end} className="pilot-project pilot-intro pilot-loop-copy" aria-hidden="true"/>
-    {transitionPreview!==null&&<div className="pilot-fold-preview" inert aria-hidden="true">
-      {transitionPreview<0?<div className="pilot-intro"/>:
-        <Preview project={selectedProjects[transitionPreview]} scrollRoot={scrollRoot} suspended={suspended} onOpen={()=>{}}/>}
-    </div>}
   </div>;
 }
