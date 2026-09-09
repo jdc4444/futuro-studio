@@ -39,6 +39,9 @@
     .futuro-resume .gallery-two-column { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .futuro-resume .gallery-four-column { grid-template-columns:repeat(4,minmax(0,1fr)); }
     .futuro-resume .project-gallery.gallery-dream-of-comfort { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .futuro-resume .project-gallery.gallery-two-then-three { grid-template-columns:repeat(6,minmax(0,1fr)); }
+    .futuro-resume .gallery-two-then-three > .gallery-frame { grid-column:span 2; }
+    .futuro-resume .gallery-two-then-three > .gallery-frame:nth-child(-n+2) { grid-column:span 3; }
     .futuro-resume .project-gallery.gallery-images { grid-template-columns:repeat(4,minmax(0,1fr)); }
     .futuro-resume .gallery-frame { position:relative; min-width:0; aspect-ratio:var(--media-aspect,16/9); margin:0; overflow:hidden; background:#0a0a0a; }
     .futuro-resume .gallery-frame img, .futuro-resume .gallery-frame video { width:100%; height:100%; display:block; object-fit:cover; }
