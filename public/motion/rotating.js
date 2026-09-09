@@ -236,7 +236,7 @@
   return (k+ease)*unit;
  }
  // 06 / A rooted tree with connected tapered branches and individual folded leaves.
- const treePos=[],treeIndices=[],treeFlex=[],treePhase=[],treeContourIndices=[];
+ const treePos=[],treeIndices=[],treeFlex=[],treePhase=[],treeLeafSurface=[],treeContourIndices=[];
  let treeSeed=7613;
  function treeRandom(){treeSeed=(Math.imul(treeSeed,1664525)+1013904223)>>>0;return treeSeed/4294967296}
  function treeTube(points,r0,r1){
@@ -245,7 +245,7 @@
    const t=i/steps,c=curve.getPointAt(t),r=r0+(r1-r0)*t;
    for(let j=0;j<sides;j++){
     const a=j/sides*Math.PI*2,flute=r0>.025?1+.13*Math.sin(a*5-t*5)+.055*Math.sin(a*9+t*8):1,p=c.clone().addScaledVector(frames.normals[i],Math.cos(a)*r*flute).addScaledVector(frames.binormals[i],Math.sin(a)*r*flute);
-    treePos.push(p.x,p.y,p.z);treeFlex.push(0);treePhase.push(0);
+    treePos.push(p.x,p.y,p.z);treeFlex.push(0);treePhase.push(0);treeLeafSurface.push(0);
    }
   }
   for(let i=0;i<steps;i++)for(let j=0;j<sides;j++){
@@ -259,7 +259,7 @@
  function treeLeaf(anchor){
   const offset=treePos.length/3,q=new T.Quaternion().setFromEuler(new T.Euler(treeRandom()*2-1,treeRandom()*Math.PI*2,treeRandom()*2-1)),scale=.43+treeRandom()*.43,phase=treeRandom()*Math.PI*2;
   const shape=[[0,0,0],[-.019,.083,0],[0,.185,0],[.019,.083,0],[0,.085,.024]];
-  for(const v of shape){const p=new T.Vector3(...v).multiplyScalar(scale).applyQuaternion(q).add(anchor);treePos.push(p.x,p.y,p.z);treeFlex.push(v[1]/.185);treePhase.push(phase)}
+  for(const v of shape){const p=new T.Vector3(...v).multiplyScalar(scale).applyQuaternion(q).add(anchor);treePos.push(p.x,p.y,p.z);treeFlex.push(v[1]/.185);treePhase.push(phase);treeLeafSurface.push(1)}
   for(const i of [0,1,4,1,2,4,2,3,4,3,0,4])treeIndices.push(offset+i);
   for(const i of [0,1,1,2,2,3,3,0])treeContourIndices.push(offset+i);
  }
@@ -337,21 +337,37 @@
  // Spiral the entire connected anatomy through depth, including the bark ridges.
  // Smooth deformation keeps branch joints intact and gives the bole a side silhouette.
  for(let i=0;i<treePos.length;i+=3){const y=treePos[i+1],u=T.MathUtils.clamp((y+1.10)/1.65,0,1),a=.70*Math.sin(u*Math.PI);const x=treePos[i],z=treePos[i+2];treePos[i]=x*Math.cos(a)-z*Math.sin(a);treePos[i+2]=x*Math.sin(a)+z*Math.cos(a)+.14*Math.sin(u*Math.PI*2);}
- const treeGeo=new T.BufferGeometry();treeGeo.setAttribute('position',new T.Float32BufferAttribute(treePos,3));treeGeo.setAttribute('leafFlex',new T.Float32BufferAttribute(treeFlex,1));treeGeo.setAttribute('leafPhase',new T.Float32BufferAttribute(treePhase,1));treeGeo.setIndex(treeIndices);treeGeo.computeVertexNormals();
- const treeMaterial=ink.clone();treeMaterial.uniforms.shadeBias.value=.06;treeMaterial.uniforms.windPhase={value:0};
- treeMaterial.fragmentShader=`varying vec3 n;varying vec3 p;
- float grain(vec2 q){return fract(sin(dot(q,vec2(127.1,311.7)))*43758.5453);}
- void main(){vec3 nn=normalize(n);float light=max(dot(nn,normalize(vec3(-.6,.9,1.))),0.);float rim=pow(1.-abs(nn.z),3.);
- float bark=.5+.5*sin(p.y*9.+p.x*145.+sin(p.z*83.+p.y*7.)*2.);
- float shade=clamp(.28+(1.-light)*.48+rim*.14+(bark-.5)*.09,.15,.94);
- float g=grain(floor(gl_FragCoord.xy));float c=1.-shade; c=clamp(c+(g-.5)*.30,0.04,.92);gl_FragColor=vec4(vec3(c),1.);}`;
- treeMaterial.vertexShader=`uniform float windPhase;attribute float leafFlex;attribute float leafPhase;varying vec3 n;varying vec3 p;
+ const treeGeo=new T.BufferGeometry();treeGeo.setAttribute('position',new T.Float32BufferAttribute(treePos,3));treeGeo.setAttribute('leafFlex',new T.Float32BufferAttribute(treeFlex,1));treeGeo.setAttribute('leafPhase',new T.Float32BufferAttribute(treePhase,1));treeGeo.setAttribute('leafSurface',new T.Float32BufferAttribute(treeLeafSurface,1));treeGeo.setIndex(treeIndices);treeGeo.computeVertexNormals();
+ // Surfaces only occlude the back of the drawing; leaves stay open and white.
+ // Sparse ink dots give the wood depth without turning the crown into a gray mass.
+ const treeUniforms={windPhase:{value:0}};
+ const treeVertexShader=`uniform float windPhase;attribute float leafFlex;attribute float leafPhase;attribute float leafSurface;varying vec3 n;varying float leaf;
  void main(){vec3 v=position;float h=max(0.,v.y+1.10);float bend=pow(h/2.5,2.);float gust=.70+.30*cos(windPhase);
  v.x+=bend*gust*(.12*sin(3.*windPhase-.65*h)+.035*sin(7.*windPhase-.30*h));
  v.z+=bend*.08*sin(2.*windPhase-.4*h);
  v.x+=leafFlex*.035*sin(19.*windPhase+leafPhase);v.y+=leafFlex*.013*sin(23.*windPhase+leafPhase);v.z+=leafFlex*.055*sin(17.*windPhase+leafPhase);
- n=normalize(normalMatrix*normal);p=v;gl_Position=projectionMatrix*modelViewMatrix*vec4(v,1.);}`;
+ n=normalize(normalMatrix*normal);leaf=leafSurface;gl_Position=projectionMatrix*modelViewMatrix*vec4(v,1.);}`;
+ const treeMaterial=new T.ShaderMaterial({
+  uniforms:treeUniforms,side:T.DoubleSide,vertexShader:treeVertexShader,
+  polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1,
+  fragmentShader:`varying vec3 n;varying float leaf;
+  float grain(vec2 q){return fract(sin(dot(q,vec2(127.1,311.7)))*43758.5453);}
+  void main(){float light=abs(dot(normalize(n),normalize(vec3(-.6,.9,1.))));
+   float density=(1.-leaf)*(.018+.075*pow(1.-light,2.));
+   float c=grain(floor(gl_FragCoord.xy/1.15))<density?.035:1.;
+   gl_FragColor=vec4(vec3(c),1.);}`
+ });
  const tree=new T.Mesh(treeGeo,treeMaterial);studies[5].add(tree);
+ // Draw the actual leaf edges, bark paths and growth rings, never mesh diagonals.
+ // Shared buffers, deformation and phase keep the ink attached as the tree sways.
+ const treeLineGeo=new T.BufferGeometry();
+ for(const [name,attribute] of Object.entries(treeGeo.attributes))treeLineGeo.setAttribute(name,attribute);
+ treeLineGeo.setIndex(treeContourIndices);
+ const treeLineMaterial=new T.ShaderMaterial({
+  uniforms:treeUniforms,vertexShader:treeVertexShader,depthWrite:false,
+  fragmentShader:'void main(){gl_FragColor=vec4(vec3(.025),1.);}'
+ });
+ const treeLines=new T.LineSegments(treeLineGeo,treeLineMaterial);treeLines.renderOrder=1;studies[5].add(treeLines);
  const prismFrame=new T.Group();prismFrame.scale.set(1.2,1.1,1.2);studies[5].add(prismFrame);
  const prismLines=[],corners=[];
  for(let i=0;i<3;i++){const a=Math.PI/6+i*Math.PI*2/3;corners.push([1.65*Math.cos(a),1.65*Math.sin(a)])}
