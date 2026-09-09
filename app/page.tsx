@@ -15,7 +15,6 @@ const languages = [
 ['es','Spanish','Latin','luz infinita'],
 ['ko','Korean','Hangul','무한한 빛'],
 ['he','Hebrew','Hebrew','אור אינסופי'],
-['fr','French','Latin','lumière infinie'],
 ['bn','Bengali','Bengali','অসীম আলো'],
 ['th','Thai','Thai','แสงอนันต์'],
 ['el','Greek','Greek','άπειρο φως'],
@@ -45,11 +44,11 @@ export default function Home(){
   event.preventDefault();if(!message.trim()||status==='sending'||status==='sent')return;
   setStatus('sending');setError('');
   try{
-   const response=await fetch('https://formsubmit.co/ajax/jos@futuro.studio',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({message:message.trim(),_subject:'Futuro website message',_template:'basic',_url:window.location.origin}),signal:AbortSignal.timeout(20000)});
+   const response=await fetch('https://formsubmit.co/ajax/jos@futuro.studio',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({message:message.trim(),_subject:'Futuro website message',_template:'basic',_url:'https://www.futuro.studio/'}),signal:AbortSignal.timeout(20000)});
    const result=await response.json() as {success?:boolean|string;message?:string};
    if(!response.ok||(result.success!==true&&result.success!=='true')||/activat|confirm/i.test(result.message||''))throw new Error('Could not send yet. Please try again or email jos@futuro.studio.');
    setStatus('sent');
-  }catch{setError('Could not send. Your message is saved here—try again, or email jos@futuro.studio.');setStatus('error')}
+  }catch{setError('Could not send. Your message is still here.');setStatus('error')}
  }
  const entries=useMemo(()=>languages.map(([locale,,script])=>{const text=futuroTranslations[locale][0].toLocaleLowerCase(locale),native=Array.from(text.normalize('NFC')).every(c=>coverage['Raleway Dots'].includes(c.codePointAt(0)!));return {locale,script,text,family:native?'Raleway Dots':script==='Latin'?'Raleway':weightFonts[script as keyof typeof weightFonts],weight:native?400:300};}),[]);
  const resting=useMemo(()=>entries.map(e=>e.locale==='en'?{...e,text:'futuro'}:e),[entries]);
@@ -64,7 +63,7 @@ export default function Home(){
  </section>}
  {view==='contact'&&<form className="futuro-contact-form" onSubmit={submit} style={{fontSize:logoSize}} aria-label="Send a message">
  <ContactInput value={message} onChange={setMessage} disabled={status==='sending'||status==='sent'}/>
- <div className="futuro-form-note" aria-live="polite">{status==='sending'||status==='sent'?'Sending…':error}</div>
+ <div className="futuro-form-note" aria-live="polite">{status==='sending'?'Sending…':status==='sent'?'Sent.':error}{status==='error'&&<> <a href={`mailto:jos@futuro.studio?subject=${encodeURIComponent('Futuro website message')}&body=${encodeURIComponent(message)}`}>Email this message</a></>}</div>
  </form>}
  </main>
  <button className="futuro-information" aria-pressed={view==='information'} onClick={()=>{setHover(false);setView(v=>v==='information'?'home':'information')}} disabled={status==='sending'}>Information</button>

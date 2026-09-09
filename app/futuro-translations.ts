@@ -33,10 +33,6 @@ export const futuroTranslations:Record<string,[string,string]> = {
     "עתיד",
     "סטודיו עתיד"
   ],
-  "fr": [
-    "avenir",
-    "studio avenir"
-  ],
   "bn": [
     "ভবিষ্যৎ",
     "ভবিষ্যৎ স্টুডিও"
