@@ -972,6 +972,16 @@ export function mountResume(root) {
           (currentFilter === "quotes" && !hidden && project.quotes.length > 0);
         return matchesFilter;
       });
+      for (const [firstRoute, secondRoute] of [
+        ["/celeste-everyday", "/paracosm"],
+        ["/lovb-launch", "/ggm-accoustic"],
+      ]) {
+        const firstIndex = visible.findIndex(project => project.route === firstRoute);
+        const secondIndex = visible.findIndex(project => project.route === secondRoute);
+        if (firstIndex >= 0 && secondIndex >= 0) {
+          [visible[firstIndex], visible[secondIndex]] = [visible[secondIndex], visible[firstIndex]];
+        }
+      }
       list.innerHTML = visible.length ? visible.map(project => {
         const credits = project.credits.length ? `<section class="content-section"><div class="section-label">Credits</div><div class="credit-grid">${project.credits.map(([role,name]) => `<div class="credit"><div class="credit-role">${escapeHTML(role || "Credit")}</div><div class="credit-name">${escapeHTML(name)}</div></div>`).join("")}</div></section>` : "";
         const fields = project.fields.map(field => `<section class="content-section"><div class="section-label">${escapeHTML(field.label)}</div><div class="link-line">${field.links.map(link => `<a href="${escapeHTML(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)}</a>`).join("")}</div></section>`).join("");
