@@ -60,7 +60,7 @@ function Preview({project,scrollRoot,suspended,onOpen,duplicate=false}:{
   </button>;
 }
 
-export function PilotProjects({suspended=false,onIntroChange}:{suspended?:boolean;onIntroChange:(visible:boolean)=>void}) {
+export function PilotProjects({suspended=false,onIntroChange,onFootageChange}:{suspended?:boolean;onIntroChange:(visible:boolean)=>void;onFootageChange:(visible:boolean)=>void}) {
   const scrollRoot=useRef<HTMLDivElement>(null);
   const intro=useRef<HTMLElement>(null);
   const cards=useRef<(HTMLElement|null)[]>([]);
@@ -93,6 +93,7 @@ export function PilotProjects({suspended=false,onIntroChange}:{suspended?:boolea
 
   function open(index:number){
     onIntroChange(false);
+    onFootageChange(true);
     pendingAnchor.current={index,top:scrollRoot.current?.getBoundingClientRect().top||0};
     visitedDetails.current=false;
     // Only this project expands; all surrounding previews retain their order.
@@ -112,10 +113,11 @@ export function PilotProjects({suspended=false,onIntroChange}:{suspended?:boolea
       const y=scroller.scrollTop,delta=y-lastScroll.current;
       lastScroll.current=y;
       const height=scroller.clientHeight;
-      onIntroChange(expandedRef.current===null&&(
+      const inIntro=expandedRef.current===null&&(
         Math.abs(y-(intro.current?.offsetTop||0))<height*.5||
         Math.abs(y-(end.current?.offsetTop||Infinity))<height*.5
-      ));
+      );
+      onIntroChange(inIntro);
       const index=expandedRef.current;
       if(index!==null){
         const card=cards.current[index];
@@ -123,6 +125,7 @@ export function PilotProjects({suspended=false,onIntroChange}:{suspended?:boolea
         const bounds=card.getBoundingClientRect();
         const top=bounds.top-scroller.getBoundingClientRect().top;
         const bottom=top+bounds.height;
+        onFootageChange(top>-height*.5);
         if(top < -scroller.clientHeight*.3)visitedDetails.current=true;
         const exit=projectExit(top,bottom,delta,visitedDetails.current);
         if(exit==='next'){
@@ -134,6 +137,7 @@ export function PilotProjects({suspended=false,onIntroChange}:{suspended?:boolea
         }
         return;
       }
+      onFootageChange(!inIntro);
       const first=intro.current,final=cards.current[last];
       if(!first||!final||!end.current)return;
       const destination=loopDestination(y,first.offsetTop,final.offsetTop,end.current.offsetTop);
@@ -142,7 +146,7 @@ export function PilotProjects({suspended=false,onIntroChange}:{suspended?:boolea
     const onScroll=()=>{if(!frame.current)frame.current=requestAnimationFrame(inspect);};
     scroller.addEventListener('scroll',onScroll,{passive:true});
     return()=>{scroller.removeEventListener('scroll',onScroll);cancelAnimationFrame(frame.current);frame.current=0;};
-  },[last,suspended,onIntroChange]);
+  },[last,suspended,onIntroChange,onFootageChange]);
 
   useEffect(()=>{
     if(!suspended)return;
