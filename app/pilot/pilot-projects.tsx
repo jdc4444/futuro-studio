@@ -3,7 +3,7 @@
 import {useEffect,useLayoutEffect,useRef,useState,type CSSProperties,type RefObject} from 'react';
 import {ResumeEntries} from '../resume-entries';
 import {selectedProjects,type SelectedProject} from '../resume-selection';
-import {anchoredScroll,createScrollGestureGate,loopDestination,projectExit} from './pilot-navigation';
+import {anchoredScroll,createScrollGestureGate,projectExit} from './pilot-navigation';
 
 function Preview({project,scrollRoot,onOpen}:{
   project:SelectedProject;scrollRoot:RefObject<HTMLDivElement|null>;
@@ -136,7 +136,16 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
     const card=wrap?end.current:index===-1?intro.current:cards.current[index];
     if(!card)return;
     selectPreview(index);
-    scrollToElement(card,'preview',smooth);
+    scrollToElement(card,'preview',smooth,()=>{
+      // Complete the loop as one transition before accepting another gesture.
+      // The duplicate intro and the real intro share the same fixed artwork.
+      if(wrap&&intro.current&&scrollRoot.current){
+        scrollRoot.current.scrollTop=elementTop(intro.current);
+        lastScroll.current=scrollRoot.current.scrollTop;
+      }
+      gesture.current.hold(performance.now());
+      if(touch.current)touch.current.consumed=true;
+    });
   }
 
   function enterDetails(){
@@ -147,14 +156,14 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
 
   function advance(direction:number){
     const next=currentPreview.current+direction;
-    gesture.current.hold();
+    gesture.current.hold(performance.now());
     if(next< -1)return;
     scrollToPreview(next>last?-1:next,next>last);
   }
 
   function resetToPreview(index:number){
     cancelScroll();
-    gesture.current.hold();
+    gesture.current.hold(performance.now());
     if(touch.current)touch.current.consumed=true;
     selectPreview(index);
     onIntroChange(index===-1);onFootageChange(index!==-1);
@@ -173,12 +182,12 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
   function returnToIntro(){
     const tile=intro.current,scroller=scrollRoot.current;
     if(!tile||!scroller)return;
-    cancelScroll();gesture.current.hold();
+    cancelScroll();gesture.current.hold(performance.now());
     if(touch.current)touch.current.consumed=true;
     selectPreview(-1);
     const finish=()=>{
       if(expandedRef.current!==null)resetToPreview(-1);
-      else{gesture.current.hold();onIntroChange(true);onFootageChange(false);}
+      else{gesture.current.hold(performance.now());onIntroChange(true);onFootageChange(false);}
       scroller.focus({preventScroll:true});
     };
     if(Math.abs(scroller.scrollTop-elementTop(tile))<.5){finish();return;}
@@ -285,11 +294,6 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
           return;
         }
       }
-      if(intro.current&&end.current&&loopDestination(y,intro.current.offsetTop,end.current.offsetTop)!==null){
-        scrollToPreview(-1,false,false);
-        gesture.current.hold();
-        onIntroChange(true);onFootageChange(false);
-      }
     };
     refresh.current=inspect;
     const onScroll=()=>{if(!frame.current)frame.current=requestAnimationFrame(inspect);};
@@ -301,8 +305,9 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
       if(suspended||event.ctrlKey||!event.deltaY)return;
       interruptProjectScroll();
       const amount=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?scroller.clientHeight:1);
-      if(travel.current==='home'){
-        gesture.current.wheel(performance.now(),amount);gesture.current.hold();
+      if(travel.current==='home'||travel.current==='preview'){
+        const now=performance.now();
+        gesture.current.wheel(now,amount);gesture.current.hold(now);
         event.preventDefault();return;
       }
       if(gesture.current.wheel(performance.now(),amount)){event.preventDefault();return;}
@@ -313,12 +318,12 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
     };
     const onTouchStart=(event:TouchEvent)=>{
       if(suspended||event.touches.length!==1)return;
-      if(travel.current==='home')return;
+      if(travel.current==='home'||travel.current==='preview')return;
       interruptProjectScroll();cancelWheelScroll();gesture.current.release();
       touch.current={startY:event.touches[0].clientY,consumed:false};
     };
     const onTouchMove=(event:TouchEvent)=>{
-      if(!suspended&&travel.current==='home'){event.preventDefault();return;}
+      if(!suspended&&(travel.current==='home'||travel.current==='preview')){event.preventDefault();return;}
       if(suspended||event.touches.length!==1||!touch.current||expandedRef.current!==null)return;
       event.preventDefault();
       const distance=touch.current.startY-event.touches[0].clientY;
@@ -334,7 +339,7 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
       if(event.key===' '&&target.closest('button,a'))return;
       const direction=['ArrowDown','PageDown'].includes(event.key)||(event.key===' '&&!event.shiftKey)?1:
         ['ArrowUp','PageUp'].includes(event.key)||(event.key===' '&&event.shiftKey)?-1:0;
-      if(travel.current==='home'){
+      if(travel.current==='home'||travel.current==='preview'){
         if(direction||event.key==='Home'||event.key==='End')event.preventDefault();
         return;
       }

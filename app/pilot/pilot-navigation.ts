@@ -17,7 +17,9 @@ export function createScrollGestureGate() {
   let previous=0,peak=0,decayed=false;
   return {
     get held(){return held;},
-    hold(){held=true;heldAt=lastWheel;peak=Math.abs(previous);decayed=false;},
+    hold(now=lastWheel){
+      held=true;heldAt=now;lastWheel=now;peak=Math.abs(previous);decayed=false;
+    },
     release(){held=false;},
     wheel(now:number,delta=0){
       const magnitude=Math.abs(delta);
