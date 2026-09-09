@@ -1,4 +1,7 @@
-import projects from './resume-projects.json';
+import projectData from './resume-projects.json';
+import {applyProjectMediaOverrides} from './resume-media-overrides';
+
+const projects=applyProjectMediaOverrides(projectData);
 
 // One selection and order for the homepage and its full-screen pilot.
 export const projectOrder = new Map([

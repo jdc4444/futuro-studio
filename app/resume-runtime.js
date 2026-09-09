@@ -1,6 +1,8 @@
 // Adapted from the live JDC résumé; keep its verified playback and gallery edits.
-import projects from './resume-projects.json';
+import projectData from './resume-projects.json';
+import {applyProjectMediaOverrides} from './resume-media-overrides';
 import {projectOrder} from './resume-selection';
+const projects=applyProjectMediaOverrides(projectData);
 /** @param {HTMLElement} root @param {{routes?: string[]}} [options] */
 export function mountResume(root, options = {}) {
     const list = root.querySelector("[data-project-list], #projectList");
