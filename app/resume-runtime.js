@@ -9,13 +9,22 @@ export function mountResume(root) {
       "/tobias-rees-limn",
       "/maybelline-gigi-whip-it-up",
     ]);
-    const selectedRoutes = new Set([
-      ...projects.filter(project => !hiddenRoutes.has(project.route)).slice(0,10).map(project => project.route),
+    const projectOrder = new Map([
+      "/day-one",
+      "/seletar-archive",
+      "/lovb-adidas",
+      "/bombas-dream-of-comfort",
       "/celeste-everyday",
+      "/nike-aja-sabrina",
+      "/polymarket-documentary",
+      "/bombas-spring",
+      "/siberia-hills",
+      "/paracosm",
+      "/alignment-documentary",
       "/spotify-hip-hop-classics-1",
-      "/ggm-accoustic",
       "/lovb-launch",
-    ]);
+      "/ggm-accoustic",
+    ].map((route, index) => [route, index]));
     let mediaObserver;
     let currentFilter = "all";
     let globalSoundEnabled = false;
@@ -961,7 +970,7 @@ export function mountResume(root) {
     function render() {
       teardownMedia();
       const visible = projects.filter(project => {
-        const hidden = hiddenRoutes.has(project.route) || !selectedRoutes.has(project.route);
+        const hidden = hiddenRoutes.has(project.route) || !projectOrder.has(project.route);
         const matchesFilter = (currentFilter === "all" && !hidden) ||
           (currentFilter === "director" && !hidden && hasDirectorRole(project)) ||
           (currentFilter === "producer" && !hidden && hasProducerRole(project)) ||
@@ -971,17 +980,7 @@ export function mountResume(root) {
           (currentFilter === "recognition" && !hidden && hasRecognition(project)) ||
           (currentFilter === "quotes" && !hidden && project.quotes.length > 0);
         return matchesFilter;
-      });
-      for (const [firstRoute, secondRoute] of [
-        ["/celeste-everyday", "/paracosm"],
-        ["/lovb-launch", "/ggm-accoustic"],
-      ]) {
-        const firstIndex = visible.findIndex(project => project.route === firstRoute);
-        const secondIndex = visible.findIndex(project => project.route === secondRoute);
-        if (firstIndex >= 0 && secondIndex >= 0) {
-          [visible[firstIndex], visible[secondIndex]] = [visible[secondIndex], visible[firstIndex]];
-        }
-      }
+      }).sort((first, second) => projectOrder.get(first.route) - projectOrder.get(second.route));
       list.innerHTML = visible.length ? visible.map(project => {
         const credits = project.credits.length ? `<section class="content-section"><div class="section-label">Credits</div><div class="credit-grid">${project.credits.map(([role,name]) => `<div class="credit"><div class="credit-role">${escapeHTML(role || "Credit")}</div><div class="credit-name">${escapeHTML(name)}</div></div>`).join("")}</div></section>` : "";
         const fields = project.fields.map(field => `<section class="content-section"><div class="section-label">${escapeHTML(field.label)}</div><div class="link-line">${field.links.map(link => `<a href="${escapeHTML(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)}</a>`).join("")}</div></section>`).join("");
