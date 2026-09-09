@@ -66,6 +66,10 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
   const cards=useRef<(HTMLElement|null)[]>([]);
   const end=useRef<HTMLElement>(null);
   const [expanded,setExpanded]=useState<number|null>(null);
+  const [closing,setClosing]=useState<{target:number;offset:number;height:number}|null>(null);
+  const closingRef=useRef(false);
+  const frozenScroll=useRef(0);
+  const closingPanel=useRef<HTMLDivElement>(null);
   const expandedRef=useRef<number|null>(null);
   const currentPreview=useRef(-1);
   const pendingAnchor=useRef<{index:number}|null>(null);
@@ -113,14 +117,48 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     scrollToPreview(next>last?-1:next,next>last);
   }
 
-  function stopAtPreview(index:number){
+  function finishClose(index:number){
     gesture.current.hold();
     if(touch.current)touch.current.consumed=true;
     selectPreview(index);
+    onIntroChange(index===-1);onFootageChange(index!==-1);
     pendingAnchor.current={index};
     expandedRef.current=null;
+    closingRef.current=false;
+    setClosing(null);
     setExpanded(null);
   }
+
+  function stopAtPreview(index:number,fold=false){
+    if(closingRef.current)return;
+    const scroller=scrollRoot.current;
+    const card=expandedRef.current===null?null:cards.current[expandedRef.current];
+    if(!fold||!scroller||!card||matchMedia('(prefers-reduced-motion: reduce)').matches){
+      finishClose(index);return;
+    }
+    // Hold the live page in its current position while its visible surface
+    // folds up to uncover the destination preview underneath.
+    gesture.current.hold();
+    if(touch.current)touch.current.consumed=true;
+    cancelAnimationFrame(animation.current);animation.current=0;
+    closingRef.current=true;
+    frozenScroll.current=scroller.scrollTop;
+    setClosing({target:index,offset:scroller.scrollTop-card.offsetTop,height:card.offsetHeight});
+  }
+
+  useLayoutEffect(()=>{
+    if(!closing)return;
+    const panel=closingPanel.current;
+    if(!panel?.animate){finishClose(closing.target);return;}
+    panel.querySelectorAll('video').forEach(video=>video.pause());
+    let cancelled=false;
+    const fold=panel.animate([
+      {clipPath:'inset(0 0 0 0)',transform:'translateY(0)',opacity:1},
+      {clipPath:'inset(0 0 100% 0)',transform:'translateY(-24px)',opacity:.65},
+    ],{duration:440,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+    fold.finished.then(()=>{if(!cancelled)finishClose(closing.target);}).catch(()=>{});
+    return()=>{cancelled=true;fold.cancel();};
+  },[closing]);
 
   useLayoutEffect(()=>{
     onOpenChange(expanded!==null);
@@ -139,6 +177,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
   },[expanded,onOpenChange]);
 
   function open(index:number){
+    if(closingRef.current)return;
     gesture.current.release();
     destination.current=null;
     currentPreview.current=index;
@@ -154,6 +193,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     const inspect=()=>{
       frame.current=0;
       if(suspended||pendingAnchor.current)return;
+      if(closingRef.current){scroller.scrollTop=frozenScroll.current;return;}
       const y=scroller.scrollTop,delta=y-lastScroll.current;
       lastScroll.current=y;
       const height=scroller.clientHeight;
@@ -172,8 +212,8 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
         if(top < -height*.3)visitedDetails.current=true;
         const exit=projectExit(top,top+bounds.height,delta,visitedDetails.current);
         if(exit==='next')stopAtPreview(index===last?-1:index+1);
-        else if(exit==='previous')stopAtPreview(index-1);
-        else if(exit==='preview')stopAtPreview(index);
+        else if(exit==='previous')stopAtPreview(index-1,true);
+        else if(exit==='preview')stopAtPreview(index,true);
         return;
       }
       // Native touch or keyboard momentum can finish after the expanded page
@@ -202,6 +242,10 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       if(suspended||event.ctrlKey||!event.deltaY)return;
       const unit=event.deltaMode===1?16:event.deltaMode===2?scroller.clientHeight:1;
       const amount=event.deltaY*unit;
+      if(closingRef.current){
+        gesture.current.wheel(performance.now(),amount);gesture.current.hold();
+        event.preventDefault();return;
+      }
       if(gesture.current.wheel(performance.now(),amount)){event.preventDefault();return;}
       const index=expandedRef.current;
       if(index===null){
@@ -216,16 +260,19 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       if(nextY>=card.offsetTop+card.offsetHeight){
         stopAtPreview(index===last?-1:index+1);
       }else if(amount<0&&nextY<=card.offsetTop){
-        stopAtPreview(visitedDetails.current?index:index-1);
+        stopAtPreview(visitedDetails.current?index:index-1,true);
       }else scroller.scrollTop=nextY;
     };
     const onTouchStart=(event:TouchEvent)=>{
       if(suspended||event.touches.length!==1)return;
+      if(closingRef.current)return;
       gesture.current.release();
       touch.current={startY:event.touches[0].clientY,consumed:false};
     };
     const onTouchMove=(event:TouchEvent)=>{
-      if(suspended||event.touches.length!==1||!touch.current||expandedRef.current!==null)return;
+      if(suspended)return;
+      if(closingRef.current){event.preventDefault();return;}
+      if(event.touches.length!==1||!touch.current||expandedRef.current!==null)return;
       event.preventDefault();
       const distance=touch.current.startY-event.touches[0].clientY;
       if(!touch.current.consumed&&Math.abs(distance)>36){
@@ -234,7 +281,12 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     };
     const onTouchEnd=()=>{touch.current=null;};
     const onKeyDown=(event:KeyboardEvent)=>{
-      if(suspended||expandedRef.current!==null)return;
+      if(suspended)return;
+      if(closingRef.current){
+        if(['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(event.key))event.preventDefault();
+        return;
+      }
+      if(expandedRef.current!==null)return;
       const target=event.target as HTMLElement;
       if(target.closest('input,textarea,select,[contenteditable=true]'))return;
       if(event.key===' '&&target.closest('button,a'))return;
@@ -280,22 +332,30 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
   },[suspended]);
 
   return <div ref={scrollRoot} className="pilot-scroll" aria-label="Selected projects" tabIndex={0}
-    inert={suspended} data-suspended={suspended} data-open-project={expanded!==null} onKeyDown={event=>{
+    inert={suspended} data-suspended={suspended} data-open-project={expanded!==null} data-closing={closing!==null} onKeyDown={event=>{
       if(event.key!=='Escape'||expanded===null)return;
-      event.preventDefault();stopAtPreview(expanded);
+      event.preventDefault();stopAtPreview(expanded,true);
     }}>
     <section ref={intro} className="pilot-project pilot-intro" aria-label="Futuro"/>
     {selectedProjects.map((project,index)=><section key={project.route} ref={node=>{cards.current[index]=node;}}
       className="pilot-project" data-project-route={project.route} data-expanded={expanded===index}
+      style={closing&&expanded===index?{height:closing.height}:undefined}
       aria-label={project.title} onFocus={event=>{
         if(expandedRef.current===null&&(event.target as HTMLElement).matches(':focus-visible')){
           scrollToPreview(index,false,false);
         }
       }}>
       {expanded===index
-        ? <div className="pilot-details"><ResumeEntries route={project.route}/></div>
+        ? <div ref={closingPanel} className="pilot-details" data-folding={closing!==null} inert={closing!==null}
+            style={closing?{'--pilot-fold-offset':`${-closing.offset}px`} as CSSProperties:undefined}>
+            <div className="pilot-details-content"><ResumeEntries route={project.route}/></div>
+          </div>
         : <Preview project={project} scrollRoot={scrollRoot} suspended={suspended} onOpen={()=>open(index)}/>}
     </section>)}
     <section ref={end} className="pilot-project pilot-intro pilot-loop-copy" aria-hidden="true"/>
+    {closing&&<div className="pilot-fold-preview" inert aria-hidden="true">
+      {closing.target<0?<div className="pilot-intro"/>:
+        <Preview project={selectedProjects[closing.target]} scrollRoot={scrollRoot} suspended={suspended} onOpen={()=>{}}/>}
+    </div>}
   </div>;
 }

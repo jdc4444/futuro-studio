@@ -47,6 +47,8 @@ export default function Home({pilot=true}:{pilot?:boolean}={}){
  const [pilotFootage,setPilotFootage]=useState(false);
  const [pilotOpen,setPilotOpen]=useState(false);
  const [pilotCameraStep,setPilotCameraStep]=useState(0);
+ const projectIsOpen=pilot&&pilotOpen&&view==='home';
+ const surfaceTheme=projectIsOpen?'light':theme;
  const shiftPilotCamera=useCallback(()=>setPilotCameraStep(step=>step+1),[]);
  const hero=useRef<HTMLDivElement>(null);
  function openView(next:'information'|'contact'){
@@ -84,5 +86,5 @@ export default function Home({pilot=true}:{pilot?:boolean}={}){
  </div></div>
  <button className="futuro-information" aria-pressed={view==='information'} onClick={()=>openView('information')} disabled={status==='sending'}>Information</button>
  <button className="futuro-contact" aria-pressed={view==='contact'} onClick={()=>openView('contact')} disabled={status==='sending'}>Contact</button>
- <footer className="futuro-footer">Futuro LLC © Brooklyn, NY</footer><button className="futuro-year" type="button" aria-label={`Switch to ${theme==='dark'?'light':'dark'} mode`} aria-pressed={theme==='light'} onClick={()=>setTheme(t=>t==='dark'?'light':'dark')}>MMXXVI</button><main>{pilot?<PilotProjects suspended={view!=='home'} onIntroChange={setPilotIntro} onFootageChange={setPilotFootage} onOpenChange={setPilotOpen} onPreviewChange={shiftPilotCamera}/>:<ResumeEntries/>}</main></div>;
+ <footer className="futuro-footer">Futuro LLC © Brooklyn, NY</footer><button className="futuro-year" type="button" disabled={projectIsOpen} aria-label={projectIsOpen?'Project pages use light mode':`Switch to ${theme==='dark'?'light':'dark'} mode`} aria-pressed={surfaceTheme==='light'} onClick={()=>setTheme(t=>t==='dark'?'light':'dark')}>MMXXVI</button><main>{pilot?<PilotProjects suspended={view!=='home'} onIntroChange={setPilotIntro} onFootageChange={setPilotFootage} onOpenChange={setPilotOpen} onPreviewChange={shiftPilotCamera}/>:<ResumeEntries/>}</main></div>;
 }
