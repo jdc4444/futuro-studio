@@ -83,6 +83,8 @@ export default function Home({pilot=true}:{pilot?:boolean}={}){
  return <div className={`futuro-site${pilot?' futuro-pilot':''}`} data-theme={theme} data-view={view} data-pilot-intro={pilotIntro} data-pilot-footage={pilotFootage} data-pilot-open={pilotOpen}><div className="futuro-hero" ref={hero}><div className="experience with-motion light-layout-center futuro-surface">
  <button className="phrases single-phrase" style={{visibility:view==='home'&&(!pilot||pilotIntro)?'visible':'hidden'}} tabIndex={view==='home'&&(!pilot||pilotIntro)?0:-1} aria-hidden={view!=='home'||(pilot&&!pilotIntro)} type="button" aria-label="futuro — hover for translations, click for another animation" onPointerEnter={e=>{if(e.pointerType==='mouse')setHover(true)}} onPointerLeave={()=>setHover(false)} onFocus={e=>{if(e.currentTarget.matches(':focus-visible'))setHover(true)}} onBlur={()=>setHover(false)} onClick={()=>setCycle(c=>c+1)}><LightTypography dotted onSize={setLogoSize} entries={hover?entries:resting} visible={[hover?languages[(index+1)%languages.length][0]:'en']} layout="center"/></button>
  <LightMotion cycle={cycle} cameraStep={pilotCameraStep} dragOnParent={pilot&&pilotIntro&&view==='home'} outerOnly={(pilot&&!pilotIntro)||view!=='home'} active={pilot?(!pilotOpen||view!=='home'):heroVisible} enabled onEnabled={()=>{}} layout="center" onLayout={()=>{}}/>
+ </div></div>
+ {view!=='home'&&<div className="futuro-overlay">
  {view==='information'&&<section className="futuro-info-copy" aria-label="About Futuro">
  <p>Futuro is an independent creative studio based in Brooklyn, New York. We work across film, music, fashion, documentary and visual identity.</p>
  <p>Our work begins with the real and follows it somewhere unexpected: a familiar place behaving differently, a portrait that opens onto a larger story, an imagined future made tangible.</p>
@@ -92,7 +94,7 @@ export default function Home({pilot=true}:{pilot?:boolean}={}){
  <ContactInput value={message} onChange={setMessage} disabled={status==='sending'||status==='sent'} fontSize={logoSize}/>
  <div className="futuro-form-note" aria-live="polite">{status==='sending'?'Sending…':status==='sent'?'Sent.':error}{status==='error'&&<> <a href={`mailto:jos@futuro.studio?subject=${encodeURIComponent('Futuro website message')}&body=${encodeURIComponent(message)}`}>Email this message</a></>}</div>
  </form>}
- </div></div>
+ </div>}
  <button className="futuro-information" aria-pressed={view==='information'} onClick={()=>openView('information')} disabled={status==='sending'}>Information</button>
  <button className="futuro-contact" aria-pressed={view==='contact'} onClick={()=>openView('contact')} disabled={status==='sending'}>Contact</button>
  <footer className="futuro-footer"><button className="futuro-home-link" type="button" aria-label={cornerChangesAnimation?'Change Futuro animation':'Back to Futuro'} onClick={returnHome}>Futuro LLC © Brooklyn, NY</button></footer><button className="futuro-year" type="button" disabled={projectIsOpen} aria-label={projectIsOpen?'Project pages use light mode':`Switch to ${theme==='dark'?'light':'dark'} mode`} aria-pressed={surfaceTheme==='light'} onClick={()=>setTheme(t=>t==='dark'?'light':'dark')}>MMXXVI</button><main>{pilot?<PilotProjects homeRequest={homeRequest} suspended={view!=='home'} onIntroChange={setPilotIntro} onFootageChange={setPilotFootage} onOpenChange={setPilotOpen} onPreviewChange={shiftPilotCamera}/>:<ResumeEntries/>}</main></div>;

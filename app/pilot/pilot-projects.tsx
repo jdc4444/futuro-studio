@@ -5,8 +5,8 @@ import {ResumeEntries} from '../resume-entries';
 import {selectedProjects,type SelectedProject} from '../resume-selection';
 import {anchoredScroll,createScrollGestureGate,loopDestination,projectExit} from './pilot-navigation';
 
-function Preview({project,scrollRoot,suspended,onOpen}:{
-  project:SelectedProject;scrollRoot:RefObject<HTMLDivElement|null>;suspended:boolean;
+function Preview({project,scrollRoot,onOpen}:{
+  project:SelectedProject;scrollRoot:RefObject<HTMLDivElement|null>;
   onOpen:()=>void;
 }) {
   const video=useRef<HTMLVideoElement>(null);
@@ -21,7 +21,7 @@ function Preview({project,scrollRoot,suspended,onOpen}:{
       if(near&&!reduced.matches&&!film.getAttribute('src')){
         film.src=project.media.src;film.load();
       }
-      if(visible&&!suspended&&!reduced.matches&&!document.hidden){
+      if(visible&&!reduced.matches&&!document.hidden){
         film.muted=true;film.play().catch(()=>{});
       }else film.pause();
     };
@@ -49,7 +49,7 @@ function Preview({project,scrollRoot,suspended,onOpen}:{
       document.removeEventListener('visibilitychange',sync);
       film.removeAttribute('src');film.load();
     };
-  },[project,scrollRoot,suspended]);
+  },[project,scrollRoot]);
   return <button ref={button} className="pilot-preview" type="button" onClick={onOpen}
     aria-label={`Explore ${project.title}`}
     style={{'--pilot-preview-scale':Math.max(1,Number(project.media.scale)||1)} as CSSProperties}>
@@ -382,7 +382,7 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
 
   useEffect(()=>{
     if(!suspended)return;
-    const playing=[...scrollRoot.current!.querySelectorAll('video')].filter(video=>!video.paused);
+    const playing=[...scrollRoot.current!.querySelectorAll<HTMLVideoElement>('.pilot-details video')].filter(video=>!video.paused);
     playing.forEach(video=>video.pause());
     return()=>{playing.filter(video=>video.isConnected).forEach(video=>video.play().catch(()=>{}));};
   },[suspended]);
@@ -400,7 +400,7 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
           scrollToPreview(index,false,false);
         }
       }}>
-      <Preview project={project} scrollRoot={scrollRoot} suspended={suspended} onOpen={()=>open(index)}/>
+      <Preview project={project} scrollRoot={scrollRoot} onOpen={()=>open(index)}/>
       {expanded===index&&<div ref={details} className="pilot-details" tabIndex={-1}>
         <ResumeEntries route={project.route}/>
       </div>}
