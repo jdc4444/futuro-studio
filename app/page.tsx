@@ -67,5 +67,5 @@ export default function Home(){
  </main>
  <button className="futuro-information" aria-pressed={view==='information'} onClick={()=>{setHover(false);setView(v=>v==='information'?'home':'information')}} disabled={status==='sending'}>Information</button>
  <button className="futuro-contact" aria-pressed={view==='contact'} onClick={()=>{setHover(false);setView(v=>v==='contact'?'home':'contact')}} disabled={status==='sending'}>Contact</button>
- <footer className="futuro-footer">Futuro LLC © Brooklyn NY</footer><span className="futuro-year">MMXXVI</span></>;
+ <footer className="futuro-footer">Futuro LLC © Brooklyn, NY</footer><span className="futuro-year">MMXXVI</span></>;
 }
