@@ -1021,6 +1021,7 @@ export function mountResume(root) {
           !fourColumnVideoGallery &&
           (galleryItems.length === 2 || galleryItems.length === 4);
         const galleryModifiers = project.gallery.videoCount ? [
+          project.route === "/bombas-dream-of-comfort" ? "gallery-dream-of-comfort" : "",
           twoColumnVideoGallery ? "gallery-two-column" : "",
           fourColumnVideoGallery ? "gallery-four-column" : "",
           allGalleryItemsAreVideos && galleryItems.length === 3 ? "gallery-three-items" : "",
