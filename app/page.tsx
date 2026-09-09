@@ -95,7 +95,7 @@ export default function Home({pilot=true}:{pilot?:boolean}={}){
  <div className="futuro-form-note" aria-live="polite">{status==='sending'?'Sending…':status==='sent'?'Sent.':error}{status==='error'&&<> <a href={`mailto:jos@futuro.studio?subject=${encodeURIComponent('Futuro website message')}&body=${encodeURIComponent(message)}`}>Email this message</a></>}</div>
  </form>}
  </div>}
- <button className="futuro-information" aria-pressed={view==='information'} onClick={()=>openView('information')} disabled={status==='sending'}>Information</button>
+ <button className="futuro-information" aria-pressed={view==='information'} onClick={()=>openView('information')} disabled={status==='sending'}>About</button>
  <button className="futuro-contact" aria-pressed={view==='contact'} onClick={()=>openView('contact')} disabled={status==='sending'}>Contact</button>
  <footer className="futuro-footer"><button className="futuro-home-link" type="button" aria-label={cornerChangesAnimation?'Change Futuro animation':'Back to Futuro'} onClick={returnHome}>Futuro LLC © Brooklyn, NY</button></footer><button className="futuro-year" type="button" disabled={projectIsOpen} aria-label={projectIsOpen?'Project pages use light mode':`Switch to ${theme==='dark'?'light':'dark'} mode`} aria-pressed={surfaceTheme==='light'} onClick={()=>setTheme(t=>t==='dark'?'light':'dark')}>MMXXVI</button><main>{pilot?<PilotProjects homeRequest={homeRequest} suspended={view!=='home'} onIntroChange={setPilotIntro} onFootageChange={setPilotFootage} onOpenChange={setPilotOpen} onPreviewChange={shiftPilotCamera}/>:<ResumeEntries/>}</main></div>;
 }
