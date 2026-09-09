@@ -66,6 +66,8 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
   const cards=useRef<(HTMLElement|null)[]>([]);
   const end=useRef<HTMLElement>(null);
   const [expanded,setExpanded]=useState<number|null>(null);
+  const [opening,setOpening]=useState(false);
+  const openingRef=useRef(false);
   const [closing,setClosing]=useState<{target:number;offset:number;height:number}|null>(null);
   const closingRef=useRef(false);
   const frozenScroll=useRef(0);
@@ -73,7 +75,6 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
   const expandedRef=useRef<number|null>(null);
   const currentPreview=useRef(-1);
   const pendingAnchor=useRef<{index:number}|null>(null);
-  const visitedDetails=useRef(false);
   const lastScroll=useRef(0);
   const frame=useRef(0);
   const gesture=useRef(createScrollGestureGate());
@@ -130,7 +131,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
   }
 
   function stopAtPreview(index:number,fold=false){
-    if(closingRef.current)return;
+    if(closingRef.current||openingRef.current)return;
     const scroller=scrollRoot.current;
     const card=expandedRef.current===null?null:cards.current[expandedRef.current];
     if(!fold||!scroller||!card||matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -174,16 +175,49 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     }
     expandedRef.current=expanded;
     lastScroll.current=scroller.scrollTop;
+    if(openingRef.current)frozenScroll.current=scroller.scrollTop;
   },[expanded,onOpenChange]);
 
+  function finishOpen(){
+    openingRef.current=false;
+    setOpening(false);
+    gesture.current.hold();
+    if(touch.current)touch.current.consumed=true;
+    lastScroll.current=scrollRoot.current?.scrollTop||0;
+  }
+
+  useEffect(()=>{
+    if(!opening||expanded===null)return;
+    const panel=closingPanel.current,scroller=scrollRoot.current;
+    if(!panel?.animate||!scroller){finishOpen();return;}
+    let cancelled=false,completed=false,unfold:Animation|undefined;
+    const complete=()=>{
+      if(cancelled||completed)return;
+      completed=true;clearTimeout(deadline);finishOpen();
+    };
+    // Keep the animated layer viewport-sized, regardless of gallery length.
+    // A missed or cancelled browser animation must never lock the page open.
+    const deadline=setTimeout(complete,520);
+    try{
+      unfold=panel.animate([
+        {clipPath:'inset(0 0 100% 0)',transform:'translateY(-24px)',opacity:.65},
+        {clipPath:'inset(0 0 0 0)',transform:'translateY(0)',opacity:1},
+      ],{duration:440,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+      unfold.finished.then(complete,complete);
+    }catch{complete();}
+    return()=>{cancelled=true;clearTimeout(deadline);unfold?.cancel();};
+  },[opening,expanded]);
+
   function open(index:number){
-    if(closingRef.current)return;
+    if(closingRef.current||openingRef.current)return;
     gesture.current.release();
     destination.current=null;
     currentPreview.current=index;
     onIntroChange(false);onFootageChange(false);
     pendingAnchor.current={index};
-    visitedDetails.current=false;
+    openingRef.current=!matchMedia('(prefers-reduced-motion: reduce)').matches;
+    frozenScroll.current=cards.current[index]?.offsetTop||0;
+    setOpening(openingRef.current);
     setExpanded(index);
   }
 
@@ -193,7 +227,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     const inspect=()=>{
       frame.current=0;
       if(suspended||pendingAnchor.current)return;
-      if(closingRef.current){scroller.scrollTop=frozenScroll.current;return;}
+      if(closingRef.current||openingRef.current){scroller.scrollTop=frozenScroll.current;return;}
       const y=scroller.scrollTop,delta=y-lastScroll.current;
       lastScroll.current=y;
       const height=scroller.clientHeight;
@@ -209,10 +243,8 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
         const bounds=card.getBoundingClientRect();
         const top=bounds.top-scroller.getBoundingClientRect().top;
         onFootageChange(false);
-        if(top < -height*.3)visitedDetails.current=true;
-        const exit=projectExit(top,top+bounds.height,delta,visitedDetails.current);
+        const exit=projectExit(top,top+bounds.height,delta);
         if(exit==='next')stopAtPreview(index===last?-1:index+1);
-        else if(exit==='previous')stopAtPreview(index-1,true);
         else if(exit==='preview')stopAtPreview(index,true);
         return;
       }
@@ -242,7 +274,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       if(suspended||event.ctrlKey||!event.deltaY)return;
       const unit=event.deltaMode===1?16:event.deltaMode===2?scroller.clientHeight:1;
       const amount=event.deltaY*unit;
-      if(closingRef.current){
+      if(closingRef.current||openingRef.current){
         gesture.current.wheel(performance.now(),amount);gesture.current.hold();
         event.preventDefault();return;
       }
@@ -260,18 +292,18 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       if(nextY>=card.offsetTop+card.offsetHeight){
         stopAtPreview(index===last?-1:index+1);
       }else if(amount<0&&nextY<=card.offsetTop){
-        stopAtPreview(visitedDetails.current?index:index-1,true);
+        stopAtPreview(index,true);
       }else scroller.scrollTop=nextY;
     };
     const onTouchStart=(event:TouchEvent)=>{
       if(suspended||event.touches.length!==1)return;
-      if(closingRef.current)return;
+      if(closingRef.current||openingRef.current)return;
       gesture.current.release();
       touch.current={startY:event.touches[0].clientY,consumed:false};
     };
     const onTouchMove=(event:TouchEvent)=>{
       if(suspended)return;
-      if(closingRef.current){event.preventDefault();return;}
+      if(closingRef.current||openingRef.current){event.preventDefault();return;}
       if(event.touches.length!==1||!touch.current||expandedRef.current!==null)return;
       event.preventDefault();
       const distance=touch.current.startY-event.touches[0].clientY;
@@ -282,7 +314,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     const onTouchEnd=()=>{touch.current=null;};
     const onKeyDown=(event:KeyboardEvent)=>{
       if(suspended)return;
-      if(closingRef.current){
+      if(closingRef.current||openingRef.current){
         if(['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(event.key))event.preventDefault();
         return;
       }
@@ -331,8 +363,9 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     return()=>{playing.filter(video=>video.isConnected).forEach(video=>video.play().catch(()=>{}));};
   },[suspended]);
 
+  const transitionPreview=closing?closing.target:opening?expanded:null;
   return <div ref={scrollRoot} className="pilot-scroll" aria-label="Selected projects" tabIndex={0}
-    inert={suspended} data-suspended={suspended} data-open-project={expanded!==null} data-closing={closing!==null} onKeyDown={event=>{
+    inert={suspended} data-suspended={suspended} data-open-project={expanded!==null} data-closing={closing!==null} data-opening={opening} onKeyDown={event=>{
       if(event.key!=='Escape'||expanded===null)return;
       event.preventDefault();stopAtPreview(expanded,true);
     }}>
@@ -346,16 +379,16 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
         }
       }}>
       {expanded===index
-        ? <div ref={closingPanel} className="pilot-details" data-folding={closing!==null} inert={closing!==null}
+        ? <div ref={closingPanel} className="pilot-details" data-folding={closing!==null} data-opening={opening} inert={closing!==null||opening}
             style={closing?{'--pilot-fold-offset':`${-closing.offset}px`} as CSSProperties:undefined}>
             <div className="pilot-details-content"><ResumeEntries route={project.route}/></div>
           </div>
         : <Preview project={project} scrollRoot={scrollRoot} suspended={suspended} onOpen={()=>open(index)}/>}
     </section>)}
     <section ref={end} className="pilot-project pilot-intro pilot-loop-copy" aria-hidden="true"/>
-    {closing&&<div className="pilot-fold-preview" inert aria-hidden="true">
-      {closing.target<0?<div className="pilot-intro"/>:
-        <Preview project={selectedProjects[closing.target]} scrollRoot={scrollRoot} suspended={suspended} onOpen={()=>{}}/>}
+    {transitionPreview!==null&&<div className="pilot-fold-preview" inert aria-hidden="true">
+      {transitionPreview<0?<div className="pilot-intro"/>:
+        <Preview project={selectedProjects[transitionPreview]} scrollRoot={scrollRoot} suspended={suspended} onOpen={()=>{}}/>}
     </div>}
   </div>;
 }

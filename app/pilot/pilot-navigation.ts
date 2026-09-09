@@ -1,8 +1,7 @@
 // Pure geometry decisions keep the scroll loop and temporary project pages predictable.
-export function projectExit(top:number,bottom:number,delta:number,visitedDetails:boolean) {
+export function projectExit(top:number,bottom:number,delta:number) {
   if (bottom <= 1) return 'next';
-  if (visitedDetails && delta < 0 && top >= -2) return 'preview';
-  if (top > 2) return 'previous';
+  if ((delta < 0 && top >= -2) || top > 2) return 'preview';
   return null;
 }
 
