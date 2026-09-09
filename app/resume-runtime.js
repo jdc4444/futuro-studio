@@ -1,7 +1,9 @@
 // Adapted from the live JDC résumé; keep its verified playback and gallery edits.
 import projects from './resume-projects.json';
-export function mountResume(root) {
-    const list = root.querySelector("#projectList");
+import {projectOrder} from './resume-selection';
+/** @param {HTMLElement} root @param {{routes?: string[], startMainMuted?: boolean}} [options] */
+export function mountResume(root, options = {}) {
+    const list = root.querySelector("[data-project-list], #projectList");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const hiddenRoutes = new Set([
       "/working-project-37",
@@ -9,23 +11,8 @@ export function mountResume(root) {
       "/tobias-rees-limn",
       "/maybelline-gigi-whip-it-up",
     ]);
-    const projectOrder = new Map([
-      "/day-one",
-      "/seletar-archive",
-      "/lovb-adidas",
-      "/bombas-dream-of-comfort",
-      "/celeste-everyday",
-      "/nike-aja-sabrina",
-      "/polymarket-documentary",
-      "/bombas-spring",
-      "/siberia-hills",
-      "/paracosm",
-      "/alignment-documentary",
-      "/spotify-hip-hop-classics-1",
-      "/lovb-launch",
-      "/ggm-accoustic",
-    ].map((route, index) => [route, index]));
     let mediaObserver;
+    let disposed = false;
     let currentFilter = "all";
     let globalSoundEnabled = false;
     const escapeHTML = value => String(value ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
@@ -696,7 +683,7 @@ export function mountResume(root) {
             video.pause();
           }
         };
-        const activate = async () => {
+        const activate = async (startMuted = false) => {
           if (shell.classList.contains("player-active")) {
             await playWithSound();
             return;
@@ -707,8 +694,8 @@ export function mountResume(root) {
           video.dataset.userPaused = "false";
           // Direct playback always starts this lead with sound without
           // enabling hover audio for every gallery video.
-          video.dataset.localSoundEnabled = "true";
-          preferredLeadSoundVideo = video;
+          video.dataset.localSoundEnabled = String(!startMuted);
+          if (!startMuted) preferredLeadSoundVideo = video;
           const playbackType = video.dataset.playbackType || "preview";
           const masterSource = video.dataset.playbackSrc || video.dataset.src;
           if (playbackType === "embed") {
@@ -718,7 +705,7 @@ export function mountResume(root) {
             controls.setAttribute("aria-hidden", "true");
             const iframe = document.createElement("iframe");
             iframe.className = "project-player-embed";
-            iframe.src = autoplayEmbedUrl(masterSource, true);
+            iframe.src = autoplayEmbedUrl(masterSource, !startMuted);
             iframe.title = video.getAttribute("aria-label") || "Project main video";
             iframe.allow = "autoplay; fullscreen; picture-in-picture";
             iframe.allowFullscreen = true;
@@ -731,7 +718,7 @@ export function mountResume(root) {
           video.pause();
           video.classList.remove("is-ready");
           muteOtherAudibleMedia(video);
-          video.muted = false;
+          video.muted = startMuted;
           video.volume = .7;
           try {
             shell.dataset.playbackWidth = playbackType === "hls" ? "adaptive" : "local";
@@ -740,8 +727,10 @@ export function mountResume(root) {
             // remains attached. Local full-film caches bypass HLS entirely.
             await loadVideo(video, masterSource);
             await seekToPlaybackStart(video);
+            if (disposed || !video.isConnected) return;
             await video.play();
           } catch (error) {
+            if (disposed || !video.isConnected) return;
             // Never disguise a failed full-film load by silently replaying the
             // short preview. Restore the preview as a paused poster and expose
             // the full-film button for an explicit retry.
@@ -813,6 +802,7 @@ export function mountResume(root) {
         });
         ["play","pause","volumechange","timeupdate","loadedmetadata"].forEach(eventName => video.addEventListener(eventName, updateControls));
         updateControls();
+        if (options.startMainMuted) activate(true);
       });
     }
     function bindGallerySoundPlayers() {
@@ -970,6 +960,7 @@ export function mountResume(root) {
     function render() {
       teardownMedia();
       const visible = projects.filter(project => {
+        if (options.routes && !options.routes.includes(project.route)) return false;
         const hidden = hiddenRoutes.has(project.route) || !projectOrder.has(project.route);
         const matchesFilter = (currentFilter === "all" && !hidden) ||
           (currentFilter === "director" && !hidden && hasDirectorRole(project)) ||
@@ -1071,6 +1062,11 @@ export function mountResume(root) {
     }
     setGlobalSound(false);
     render();
-    return () => { teardownMedia(); root.removeEventListener("click", unlockGalleryAudioFromGesture, { capture:true }); };
+    return () => {
+      disposed = true;
+      teardownMedia();
+      root.querySelectorAll("video").forEach(destroyVideoSource);
+      root.removeEventListener("click", unlockGalleryAudioFromGesture, { capture:true });
+    };
   
 }
