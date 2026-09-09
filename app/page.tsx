@@ -71,7 +71,7 @@ export default function Home(){
  <p>We develop and direct moving images for artists, brands and cultural institutions, bringing together live action, animation and emerging tools. Our speculative projects explore folklore, architecture, technology and the people who move between them.</p>
  </section>}
  {view==='contact'&&<form className="futuro-contact-form" onSubmit={submit} style={{fontSize:logoSize}} aria-label="Send a message">
- <ContactInput value={message} onChange={setMessage} disabled={status==='sending'||status==='sent'}/>
+ <ContactInput value={message} onChange={setMessage} disabled={status==='sending'||status==='sent'} fontSize={logoSize}/>
  <div className="futuro-form-note" aria-live="polite">{status==='sending'?'Sending…':status==='sent'?'Sent.':error}{status==='error'&&<> <a href={`mailto:jos@futuro.studio?subject=${encodeURIComponent('Futuro website message')}&body=${encodeURIComponent(message)}`}>Email this message</a></>}</div>
  </form>}
  </div></div>
