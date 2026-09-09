@@ -3,7 +3,7 @@
 import {useEffect,useLayoutEffect,useRef,useState,type CSSProperties,type RefObject} from 'react';
 import {ResumeEntries} from '../resume-entries';
 import {selectedProjects,type SelectedProject} from '../resume-selection';
-import {createScrollGestureGate,loopDestination,projectExit} from './pilot-navigation';
+import {anchoredScroll,createScrollGestureGate,loopDestination,projectExit} from './pilot-navigation';
 
 function Preview({project,scrollRoot,suspended,onOpen}:{
   project:SelectedProject;scrollRoot:RefObject<HTMLDivElement|null>;suspended:boolean;
@@ -89,7 +89,8 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     if(!scroller||!card)return;
     cancelAnimationFrame(animation.current);
     selectPreview(index);
-    const target=card.offsetTop,start=scroller.scrollTop;
+    const start=scroller.scrollTop;
+    const target=anchoredScroll(start,scroller.getBoundingClientRect().top,card.getBoundingClientRect().top);
     destination.current=target;
     if(!smooth||matchMedia('(prefers-reduced-motion: reduce)').matches){
       scroller.scrollTop=target;return;
@@ -175,6 +176,18 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
         else if(exit==='preview')stopAtPreview(index);
         return;
       }
+      // Native touch or keyboard momentum can finish after the expanded page
+      // has collapsed. A settled preview always owns its exact landing point.
+      if(!animation.current){
+        const preview=currentPreview.current===-1?intro.current:cards.current[currentPreview.current];
+        if(preview){
+          const target=anchoredScroll(y,scroller.getBoundingClientRect().top,preview.getBoundingClientRect().top);
+          if(Math.abs(y-target)>.5){
+            scrollToPreview(currentPreview.current,false,false);
+            return;
+          }
+        }
+      }
       onFootageChange(!inIntro);
       if(intro.current&&end.current&&loopDestination(y,intro.current.offsetTop,end.current.offsetTop)!==null){
         scrollToPreview(-1,false,false);
@@ -182,8 +195,6 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
         onIntroChange(true);onFootageChange(false);
       }else if(destination.current!==null){
         if(Math.abs(y-destination.current)<2)destination.current=null;
-      }else{
-        currentPreview.current=Math.max(-1,Math.min(last,Math.round(y/height)-1));
       }
     };
     const onScroll=()=>{if(!frame.current)frame.current=requestAnimationFrame(inspect);};
@@ -198,14 +209,15 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       }
       const card=cards.current[index];
       if(!card)return;
+      // Apply project wheel movement directly so the browser cannot queue a
+      // separate smooth scroll that continues after we land on a preview.
+      event.preventDefault();
       const nextY=scroller.scrollTop+amount;
       if(nextY>=card.offsetTop+card.offsetHeight){
-        event.preventDefault();stopAtPreview(index===last?-1:index+1);
+        stopAtPreview(index===last?-1:index+1);
       }else if(amount<0&&nextY<=card.offsetTop){
-        event.preventDefault();stopAtPreview(visitedDetails.current?index:index-1);
-      }else if(!scroller.contains(event.target as Node)){
-        event.preventDefault();scroller.scrollTop=nextY;
-      }
+        stopAtPreview(visitedDetails.current?index:index-1);
+      }else scroller.scrollTop=nextY;
     };
     const onTouchStart=(event:TouchEvent)=>{
       if(suspended||event.touches.length!==1)return;
@@ -233,6 +245,12 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
         event.preventDefault();if(!event.repeat)scrollToPreview(event.key==='Home'?-1:last);
       }
     };
+    const resize=new ResizeObserver(()=>{
+      if(!suspended&&expandedRef.current===null&&!pendingAnchor.current&&!animation.current){
+        scrollToPreview(currentPreview.current,false,false);
+      }
+    });
+    resize.observe(scroller);
     scroller.addEventListener('scroll',onScroll,{passive:true});
     window.addEventListener('wheel',onWheel,{passive:false});
     window.addEventListener('touchstart',onTouchStart,{passive:true});
@@ -241,6 +259,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     window.addEventListener('touchcancel',onTouchEnd);
     window.addEventListener('keydown',onKeyDown);
     return()=>{
+      resize.disconnect();
       scroller.removeEventListener('scroll',onScroll);
       window.removeEventListener('wheel',onWheel);
       window.removeEventListener('touchstart',onTouchStart);
@@ -268,7 +287,11 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     <section ref={intro} className="pilot-project pilot-intro" aria-label="Futuro"/>
     {selectedProjects.map((project,index)=><section key={project.route} ref={node=>{cards.current[index]=node;}}
       className="pilot-project" data-project-route={project.route} data-expanded={expanded===index}
-      aria-label={project.title}>
+      aria-label={project.title} onFocus={event=>{
+        if(expandedRef.current===null&&(event.target as HTMLElement).matches(':focus-visible')){
+          scrollToPreview(index,false,false);
+        }
+      }}>
       {expanded===index
         ? <div className="pilot-details"><ResumeEntries route={project.route}/></div>
         : <Preview project={project} scrollRoot={scrollRoot} suspended={suspended} onOpen={()=>open(index)}/>}
