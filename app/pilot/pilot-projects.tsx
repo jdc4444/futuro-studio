@@ -60,7 +60,7 @@ function Preview({project,scrollRoot,suspended,onOpen}:{
   </button>;
 }
 
-export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onOpenChange,onPreviewChange}:{suspended?:boolean;onIntroChange:(visible:boolean)=>void;onFootageChange:(visible:boolean)=>void;onOpenChange:(open:boolean)=>void;onPreviewChange:()=>void}) {
+export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFootageChange,onOpenChange,onPreviewChange}:{suspended?:boolean;homeRequest?:number;onIntroChange:(visible:boolean)=>void;onFootageChange:(visible:boolean)=>void;onOpenChange:(open:boolean)=>void;onPreviewChange:()=>void}) {
   const scrollRoot=useRef<HTMLDivElement>(null);
   const intro=useRef<HTMLElement>(null);
   const cards=useRef<(HTMLElement|null)[]>([]);
@@ -78,7 +78,8 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
   const wheelAnimation=useRef(0);
   const wheelTarget=useRef<number|null>(null);
   const wheelTiming=useRef({last:0,response:55});
-  const travel=useRef<'preview'|'project'|null>(null);
+  const travel=useRef<'preview'|'project'|'home'|null>(null);
+  const handledHomeRequest=useRef(homeRequest);
   const refresh=useRef(()=>{});
   const last=selectedProjects.length-1;
 
@@ -103,7 +104,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     return anchoredScroll(scroller.scrollTop,scroller.getBoundingClientRect().top,element.getBoundingClientRect().top);
   }
 
-  function scrollToElement(element:HTMLElement,kind:'preview'|'project',smooth=true,complete?:()=>void){
+  function scrollToElement(element:HTMLElement,kind:'preview'|'project'|'home',smooth=true,complete?:()=>void){
     const scroller=scrollRoot.current;
     if(!scroller)return;
     cancelScroll();
@@ -117,7 +118,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     }
     travel.current=kind;
     const distance=Math.abs(elementTop(element)-start)/scroller.clientHeight;
-    const duration=kind==='project'?Math.min(1000,Math.max(520,680+Math.log2(Math.max(.25,distance))*120)):580;
+    const duration=kind==='preview'?580:Math.min(kind==='home'?1400:1000,Math.max(520,680+Math.log2(Math.max(.25,distance))*120));
     const began=performance.now();
     const step=(now:number)=>{
       const progress=Math.min(1,(now-began)/duration);
@@ -167,6 +168,23 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     if(index===null)return;
     const card=cards.current[index];
     if(card)scrollToElement(card,'project',true,()=>resetToPreview(index));
+  }
+
+  function returnToIntro(){
+    const tile=intro.current,scroller=scrollRoot.current;
+    if(!tile||!scroller)return;
+    cancelScroll();gesture.current.hold();
+    if(touch.current)touch.current.consumed=true;
+    selectPreview(-1);
+    const finish=()=>{
+      if(expandedRef.current!==null)resetToPreview(-1);
+      else{gesture.current.hold();onIntroChange(true);onFootageChange(false);}
+      scroller.focus({preventScroll:true});
+    };
+    if(Math.abs(scroller.scrollTop-elementTop(tile))<.5){finish();return;}
+    // Keep an open project mounted during the journey; remove it only after
+    // reaching the intro so the return never jumps when page height changes.
+    scrollToElement(tile,'home',true,finish);
   }
 
   useLayoutEffect(()=>{
@@ -248,7 +266,7 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       if(index!==null){
         onIntroChange(false);onFootageChange(false);
         const card=cards.current[index];
-        if(!card||travel.current==='project')return;
+        if(!card||travel.current==='project'||travel.current==='home')return;
         const bounds=card.getBoundingClientRect();
         const top=bounds.top-scroller.getBoundingClientRect().top;
         const exit=projectExit(top,top+bounds.height,delta);
@@ -283,6 +301,10 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       if(suspended||event.ctrlKey||!event.deltaY)return;
       interruptProjectScroll();
       const amount=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?scroller.clientHeight:1);
+      if(travel.current==='home'){
+        gesture.current.wheel(performance.now(),amount);gesture.current.hold();
+        event.preventDefault();return;
+      }
       if(gesture.current.wheel(performance.now(),amount)){event.preventDefault();return;}
       const index=expandedRef.current;
       if(index===null){event.preventDefault();advance(amount>0?1:-1);return;}
@@ -291,10 +313,12 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
     };
     const onTouchStart=(event:TouchEvent)=>{
       if(suspended||event.touches.length!==1)return;
+      if(travel.current==='home')return;
       interruptProjectScroll();cancelWheelScroll();gesture.current.release();
       touch.current={startY:event.touches[0].clientY,consumed:false};
     };
     const onTouchMove=(event:TouchEvent)=>{
+      if(!suspended&&travel.current==='home'){event.preventDefault();return;}
       if(suspended||event.touches.length!==1||!touch.current||expandedRef.current!==null)return;
       event.preventDefault();
       const distance=touch.current.startY-event.touches[0].clientY;
@@ -310,6 +334,10 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       if(event.key===' '&&target.closest('button,a'))return;
       const direction=['ArrowDown','PageDown'].includes(event.key)||(event.key===' '&&!event.shiftKey)?1:
         ['ArrowUp','PageUp'].includes(event.key)||(event.key===' '&&event.shiftKey)?-1:0;
+      if(travel.current==='home'){
+        if(direction||event.key==='Home'||event.key==='End')event.preventDefault();
+        return;
+      }
       if(expandedRef.current!==null){
         if(direction||event.key==='Home'||event.key==='End'){interruptProjectScroll();cancelWheelScroll();}
         return;
@@ -345,6 +373,12 @@ export function PilotProjects({suspended=false,onIntroChange,onFootageChange,onO
       cancelScroll();
     };
   },[last,suspended,onIntroChange,onFootageChange,onPreviewChange]);
+
+  useEffect(()=>{
+    if(suspended||homeRequest===handledHomeRequest.current)return;
+    handledHomeRequest.current=homeRequest;
+    returnToIntro();
+  },[homeRequest,suspended]);
 
   useEffect(()=>{
     if(!suspended)return;
