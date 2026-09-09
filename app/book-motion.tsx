@@ -59,7 +59,7 @@ export function LightMotion({cycle=0,outerOnly=false,enabled,onEnabled,layout,on
   try{sessionStorage.setItem('light-last-animation',next);}catch{}
  },[]);
  const previousCycle=useRef(cycle);
- useEffect(()=>{if(cycle===previousCycle.current)return;previousCycle.current=cycle;randomAngle();setStudy(value=>{const next=String(studies[(studies.findIndex(item=>String(item.id)===value)+1)%studies.length].id);try{sessionStorage.setItem('light-last-animation',next);}catch{}return next;});},[cycle]);
+ useEffect(()=>{if(cycle===previousCycle.current)return;previousCycle.current=cycle;randomAngle();setStudy(value=>{const options=studies.filter(item=>String(item.id)!==value);const next=String(options[Math.floor(Math.random()*options.length)].id);try{sessionStorage.setItem('light-last-animation',next);}catch{}return next;});},[cycle]);
  const [playing,setPlaying]=useState<boolean|null>(null);
  const reduced=useSyncExternalStore(subscribeMotion,()=>matchMedia('(prefers-reduced-motion: reduce)').matches,()=>true);
  const isPlaying=playing??!reduced;
