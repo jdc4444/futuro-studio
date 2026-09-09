@@ -5,6 +5,7 @@ import {LightMotion} from './book-motion';
 import {LightTypography} from './light-typography';
 import {ResumeEntries} from './resume-entries';
 import {PilotProjects} from './pilot/pilot-projects';
+import './pilot/pilot.css';
 import {futuroTranslations} from './futuro-translations';
 import weightFonts from './weight-fonts.json';
 import coverage from './latin-font-coverage.json';
@@ -35,7 +36,7 @@ const languages = [
 ['mn','Mongolian','Cyrillic','хязгааргүй гэрэл'],
 ['da','Danish','Latin','uendeligt lys'],
 ] as const;
-export default function Home({pilot=false}:{pilot?:boolean}={}){
+export default function Home({pilot=true}:{pilot?:boolean}={}){
  const [hover,setHover]=useState(false),[index,setIndex]=useState(0),[cycle,setCycle]=useState(0);
  const [view,setView]=useState<'home'|'information'|'contact'>('home');
  const [message,setMessage]=useState(''),[status,setStatus]=useState<'idle'|'sending'|'sent'|'error'>('idle'),[logoSize,setLogoSize]=useState(80);
