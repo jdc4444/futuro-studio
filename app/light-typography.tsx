@@ -38,7 +38,7 @@ export function dottedPath(entry:TypesetEntry,page:TypesetPage){
  }
  const result=paths.join('');dotCache.set(entry,result);return result;
 }
-export function LightTypography({entries,visible,layout,dotted=false}:{entries:TypeEntry[];visible:readonly string[];layout?:string;dotted?:boolean}){
+export function LightTypography({entries,visible,layout,dotted=false,onSize}:{entries:TypeEntry[];visible:readonly string[];layout?:string;dotted?:boolean;onSize?:(size:number)=>void}){
  const host=useRef<HTMLSpanElement>(null);
  const [page,setPage]=useState<TypesetPage|null>(null);
  useEffect(()=>{
@@ -50,6 +50,7 @@ export function LightTypography({entries,visible,layout,dotted=false}:{entries:T
   void ready.then(update).catch(update);
   return()=>{cancelled=true;observer.disconnect()};
  },[entries,layout]);
+ useEffect(()=>{if(page)onSize?.(page.entries.en?.size??page.bodyHeight)},[page,onSize]);
  return <span ref={host} className="light-type-grid">{page&&visible.map((locale,row)=>{
   const entry=page.entries[locale];if(!entry)return null;
   return <svg key={row} className="phrase" width="100%" height="100%" viewBox={`0 0 ${page.width} ${page.rowHeight}`} lang={locale} aria-label={entry.text} data-body-sample={entry.bodySample} data-body-height={entry.bodyHeight} data-optical-boost={entry.opticalBoost} data-font-family={entry.family} data-font-weight={entry.weight} data-font-size={entry.size} data-stroke={entry.stroke||0}>{dotted&&entry.family!=='Raleway Dots'?<path d={dottedPath(entry,page)} fill="currentColor"/>:entry.lines.map((line,i)=><text key={i} x={line.x} y={line.y} textAnchor="middle" direction={['ar','fa','ur','he'].includes(locale)?'rtl':'ltr'} style={{fontFamily:`"${entry.family}"`,fontSize:entry.size,fontWeight:entry.weight,fontSynthesis:'none',fill:'currentColor',stroke:entry.stroke?'currentColor':'none',strokeWidth:entry.size*(entry.stroke||0),strokeLinejoin:'round',paintOrder:'stroke fill'}}>{line.text}</text>)}</svg>;

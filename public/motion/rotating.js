@@ -464,7 +464,8 @@
  const whaleSectionMat=whaleMat.clone();whaleSectionMat.uniforms=whaleMat.uniforms;whaleSectionMat.fragmentShader='void main(){gl_FragColor=vec4(0.,0.,0.,1.);}';whaleSectionMat.vertexShader=whaleMat.vertexShader.replace('n=normalize(normalMatrix*normal)','n=vec3(0.)');
  whaleMat.polygonOffset=true;whaleMat.polygonOffsetFactor=1;whaleMat.polygonOffsetUnits=1;
  whale.add(new T.LineSegments(whaleSectionGeo,whaleSectionMat));
- for(const x of [-1.30,0,1.35]){const slice=frame(studies[10],2.7,1.55,faint);slice.rotation.y=Math.PI/2;slice.position.x=x}
+ const whalePlanes=[];
+ for(const x of [-1.30,0,1.35]){const slice=frame(studies[10],2.7,1.55,faint);slice.rotation.y=Math.PI/2;slice.position.x=x;whalePlanes.push(slice)}
 
  // Longitudinal surface traces connect the cross-sections into a clear silhouette.
  function whaleTrace(points){const g=new T.BufferGeometry().setFromPoints(points.map(p=>new T.Vector3(...p)));whale.add(new T.Line(g,whaleSectionMat))}
@@ -1046,6 +1047,18 @@
  let frameConfigured=false,frameAnnounced=false;
  let lightCentered=false;const birdOffset=new T.Vector3(),inverseBirdRotation=new T.Quaternion();
  let current=22,t=0,running=true,speed=1,last=performance.now(),drag=false,px=0,py=0,yaw=.58,pitch=.24;
+ let outerOnly=false;
+ // Preserve the exact moving frame transforms; exclude the subject and its projections.
+ const outerShapes=new Set([prismFrame,...sliceFrames,contourFloor,...whalePlanes,...empirePlanes,cityGround,...solarFrames,solarFloor,bikeBack,bikeSide,...bikeSections.map(s=>s.g),...volcanoPanels,volcanoFloor,...impactPanels,impactFloor,...flockPlanes,flockFloor,...flightStudies[0].panels,flightStudies[0].floor,...butterflyPanels,butterflyFloor,...hiveSections,hiveFloor]);
+ const outerPaths=new Set();
+ for(const shape of outerShapes)for(let p=shape;p;p=p.parent)outerPaths.add(p);
+ function renderVisibleScene(){
+  const hidden=[];
+  function isolate(group){for(const child of group.children){if(outerShapes.has(child))continue;if(outerPaths.has(child))isolate(child);else if(child.visible){hidden.push(child);child.visible=false}}}
+  if(outerOnly)isolate(studies[current]);
+  renderer.render(scene,camera);
+  for(const child of hidden)child.visible=true;
+ }
  const detail=['Counter-rotating fractal blocks · 36-second seamless cycle','Hypnos & axial planes · 36-second seamless cycle','Slow expansion · short smoke tail','Broken orbital rings · 36-second seamless cycle','Sequential stair turns · 36-second seamless cycle','Wind-blown tree & exposed roots · 36-second seamless cycle','White meridians & black chamber · 36-second seamless cycle','Slices & matching projections · 36-second seamless cycle','A wave wrapped onto a sphere · 36-second seamless cycle','Moving ridges on a continuous surface · 36-second seamless cycle','Blue whale cross-sections · 36-second seamless cycle','Setback sections & floor projection · 36-second seamless cycle','Orbits / square sections / projections · stylized scale','Opposing sides / rotating top & bottom · 36-second assembly cycle','Track frame / axial assembly · 36-second cycle','Lava / ash / rotating strata · 36-second cycle','One contour surface / lift / crater · 36-second cycle','850 birds / wingbeats / square sections · 36-second cycle','Rolling ribbon / revolving sections · 36-second cycle','Hollow spiral / rotating levels · 36-second cycle','Two flocks / parting & rejoining · 36-second cycle','Hinged wings / drifting paths / square sections · 36-second cycle','Half hive / exposed honeycomb / bees · 36-second cycle','Wild olive / cross-sectional contours · 36-second cycle'];
  function size(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const aspect=w/h,extent=[3.9,3.15,3.75,2.7,3.1,3.6,2.9,3.25,3.2,3.1,3.05,2.75,5.85,4.15,3.45,3.50,3.65,3.60,3.45,3.5,3.5,3.3,3.5,3.6][current];camera.top=extent/Math.min(1,aspect);camera.bottom=-camera.top;camera.right=camera.top*aspect;camera.left=-camera.right;camera.updateProjectionMatrix()}
  new ResizeObserver(size).observe(stage);
@@ -1084,11 +1097,12 @@
    mesh.position.set(0,0,0);
    if(lightCentered){group.updateWorldMatrix(true,false);group.getWorldQuaternion(inverseBirdRotation).invert();birdOffset.set(.55,.50,0).applyQuaternion(camera.quaternion).applyQuaternion(inverseBirdRotation);mesh.position.copy(birdOffset)}
   }
-  renderer.render(scene,camera);if(frameConfigured&&!frameAnnounced){frameAnnounced=true;parent.postMessage({type:'book-motion-painted',study:current},'*');}requestAnimationFrame(draw)
+  renderVisibleScene();if(frameConfigured&&!frameAnnounced){frameAnnounced=true;parent.postMessage({type:'book-motion-painted',study:current},'*');}requestAnimationFrame(draw)
  }
   window.addEventListener('message',event=>{
  if(event.source!==parent||event.data?.type!=='book-motion')return;
  const {study,playing,centered,cameraAngle}=event.data;
+ outerOnly=event.data.outerOnly===true;
  frameConfigured=true;frameAnnounced=false;
  if(typeof centered==='boolean'){
   lightCentered=centered;

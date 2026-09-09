@@ -43,7 +43,7 @@ export function BookMotion({config}:{config:Config}){
  </figure>;
 }
 
-export function LightMotion({cycle=0,enabled,onEnabled,layout,onLayout}:{cycle?:number;enabled:boolean;onEnabled:(value:boolean)=>void;layout:string;onLayout:(value:string)=>void}){
+export function LightMotion({cycle=0,outerOnly=false,enabled,onEnabled,layout,onLayout}:{cycle?:number;outerOnly?:boolean;enabled:boolean;onEnabled:(value:boolean)=>void;layout:string;onLayout:(value:string)=>void}){
  const [study,setStudy]=useState('7');
  const [frameReady,setFrameReady]=useState(false);
  const angles=['front','three-quarter','elevated','profile'];
@@ -64,11 +64,11 @@ export function LightMotion({cycle=0,enabled,onEnabled,layout,onLayout}:{cycle?:
  const reduced=useSyncExternalStore(subscribeMotion,()=>matchMedia('(prefers-reduced-motion: reduce)').matches,()=>true);
  const isPlaying=playing??!reduced;
  const frame=useRef<HTMLIFrameElement>(null);
- const update=()=>frame.current?.contentWindow?.postMessage({type:'book-motion',study:Number(study),playing:enabled&&isPlaying,centered:true,cameraAngle},'*');
+ const update=()=>frame.current?.contentWindow?.postMessage({type:'book-motion',study:Number(study),playing:enabled&&isPlaying,centered:true,cameraAngle,outerOnly},'*');
  useEffect(()=>{
-  const send=()=>frame.current?.contentWindow?.postMessage({type:'book-motion',study:Number(study),playing:enabled&&isPlaying,centered:true,cameraAngle},'*');
+  const send=()=>frame.current?.contentWindow?.postMessage({type:'book-motion',study:Number(study),playing:enabled&&isPlaying,centered:true,cameraAngle,outerOnly},'*');
   const ready=(event:MessageEvent)=>{if(event.source!==frame.current?.contentWindow)return;if(event.data?.type==='book-motion-ready')send();if(event.data?.type==='book-motion-painted'&&event.data.study===Number(study))setFrameReady(true);};
   window.addEventListener('message',ready);send();return()=>window.removeEventListener('message',ready);
- },[study,isPlaying,enabled,cameraAngle]);
+ },[study,isPlaying,enabled,cameraAngle,outerOnly]);
  return <>{enabled&&<iframe className="light-motion-art" style={{opacity:frameReady?1:0}} ref={frame} src="/motion/index.html" title="Light sculpture — drag to orbit" sandbox="allow-scripts allow-same-origin" onLoad={update}/>}</>;
 }
