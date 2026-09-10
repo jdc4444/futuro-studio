@@ -17,21 +17,24 @@ export function createScrollGestureGate() {
   let previous=0,peak=0,decayed=false;
   return {
     get held(){return held;},
-    hold(now=lastWheel){
-      held=true;heldAt=now;lastWheel=now;peak=Math.abs(previous);decayed=false;
+    hold(now=lastWheel,preserveMomentum=false){
+      held=true;heldAt=now;lastWheel=now;
+      if(!preserveMomentum){peak=Math.abs(previous);decayed=false;}
     },
     release(){held=false;},
-    wheel(now:number,delta=0){
+    wheel(now:number,delta=0,inTransit=false){
       const magnitude=Math.abs(delta);
-      const reversed=magnitude>=4&&previous!==0&&Math.sign(delta)!==Math.sign(previous);
+      const reversed=magnitude>=2&&previous!==0&&Math.sign(delta)!==Math.sign(previous);
       // A second swipe often starts before the previous swipe's inertia has
       // stopped emitting events. Its renewed impulse is another gesture.
-      const newImpulse=decayed&&now-heldAt>300&&magnitude>=8&&magnitude>Math.abs(previous)*1.6;
+      // Pixel deltas can be small even for a deliberate Safari trackpad swipe.
+      // Compare the new impulse with the tail, not a large fixed wheel threshold.
+      const newImpulse=decayed&&now-heldAt>300&&magnitude>=2&&magnitude>Math.abs(previous)*1.8;
       const freshGesture=now-lastWheel>160||reversed||newImpulse;
       lastWheel=now;
-      if(held&&freshGesture)held=false;
+      if(held&&freshGesture&&!inTransit)held=false;
       peak=Math.max(peak,magnitude);
-      if(peak>=8&&magnitude<peak*.55)decayed=true;
+      if(peak>=2&&magnitude<peak*.55)decayed=true;
       previous=delta;
       return held;
     },

@@ -143,7 +143,7 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
         scrollRoot.current.scrollTop=elementTop(intro.current);
         lastScroll.current=scrollRoot.current.scrollTop;
       }
-      gesture.current.hold(performance.now());
+      gesture.current.hold(performance.now(),true);
       if(touch.current)touch.current.consumed=true;
     });
   }
@@ -307,7 +307,9 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
       const amount=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?scroller.clientHeight:1);
       if(travel.current==='home'||travel.current==='preview'){
         const now=performance.now();
-        gesture.current.wheel(now,amount);gesture.current.hold(now);
+        // Track the whole momentum curve through the transition. Re-holding on
+        // every event erased its peak and made gentle subsequent swipes stall.
+        gesture.current.wheel(now,amount,true);
         event.preventDefault();return;
       }
       if(gesture.current.wheel(performance.now(),amount)){event.preventDefault();return;}
