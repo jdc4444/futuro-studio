@@ -412,6 +412,10 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
         <ResumeEntries route={project.route}/>
       </div>}
     </section>)}
+
     <section ref={end} className="pilot-project pilot-intro pilot-loop-copy" aria-hidden="true"/>
+    {expanded===null&&<div className="pilot-preview-input" aria-hidden="true" onClick={()=>{
+      if(!suspended&&!travel.current&&currentPreview.current>=0)open(currentPreview.current);
+    }}/>}
   </div>;
 }
