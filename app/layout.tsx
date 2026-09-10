@@ -6,11 +6,13 @@ export const metadata: Metadata = {
   description: 'futuro — brooklyn, new york.',
   icons: {
     icon: [
-      { url: '/favicon-wordmark.ico', sizes: '16x16 32x32 48x48' },
-      { url: '/favicon-wordmark-32.png', type: 'image/png', sizes: '32x32' },
-      { url: '/favicon-wordmark.svg', type: 'image/svg+xml', sizes: 'any' },
+      { url: '/futuro-icon-v2.ico', type: 'image/x-icon', sizes: '16x16 32x32 48x48' },
+      { url: '/futuro-icon-v2-16.png', type: 'image/png', sizes: '16x16' },
+      { url: '/futuro-icon-v2-32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/futuro-icon-v2-48.png', type: 'image/png', sizes: '48x48' },
     ],
-    apple: '/apple-touch-wordmark.png',
+    shortcut: '/futuro-icon-v2.ico',
+    apple: { url: '/futuro-icon-v2-180.png', sizes: '180x180' },
   },
 };
 
