@@ -5,18 +5,25 @@ import {useEffect,useRef,useState} from 'react';
 // The opening screen's video backgrounds: five second clips with their look baked in, made in the studio from
 // the macro board's pool (studio/tiles/scripts/publish_backgrounds.py) and published apart from this site, so
 // the site stays light and the clips can change without a deploy. index.json there lists them.
-// On a development machine the same folder is served next door (the studio's launcher, port 3124).
+// On a development machine the same folder is served next door (the studio's launcher, port 3124), and the m key
+// tells the studio's Video library (port 3123) that the clip in view is no good: it then makes that background
+// again from another smooth stretch of the clip, or drops a clip that has none left.
 const PUBLISHED='https://jdc4444.github.io/futuro-backgrounds/';
-const base=()=>/^(localhost|127\.0\.0\.1)$/.test(location.hostname)?`${location.protocol}//${location.hostname}:3124/`:PUBLISHED;
+const local=()=>/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+const base=()=>local()?`${location.protocol}//${location.hostname}:3124/`:PUBLISHED;
 
-// A clip comes in two sizes: src (H.264, long side 1600: every browser, small screens) and big (HEVC 10-bit, long side
-// 2560: next to the studio's own 2560 it is hard to tell apart). The big one is for a screen wide enough to show the
-// difference, in a browser that says it plays it smoothly; if one still fails to play, this visit stays with the small.
-type Clip={id:string;src:string;big?:string};
+// A clip comes in three sizes: src (H.264, long side 1600: every browser, the slowest connections), mid and big
+// (HEVC 10-bit, long side 1920 and 2560; next to the studio's own 2560 the big one is hard to tell apart). Which one
+// is asked for follows the browser (does it play HEVC smoothly), the screen (is it wide enough to show the difference)
+// and the connection: what the browser says of it at first, then how fast the clips before really arrived.
+type Size='src'|'mid'|'big';
+type Clip={id:string;src:string;mid?:string;big?:string;bytes?:number;mid_bytes?:number;big_bytes?:number};
 type Listed={clips?:Clip[];big_codec?:string};
+const WEIGHT:Record<Size,number>={src:0.9e6,mid:1.0e6,big:1.5e6};   // bytes, when the list does not say
+const weightOf=(clip:Clip,size:Size)=>(size==='src'?clip.bytes:size==='mid'?clip.mid_bytes:clip.big_bytes)??WEIGHT[size];
 
-async function wantsBig(codec:string|undefined){
-  if(!codec||Math.max(innerWidth,innerHeight)*devicePixelRatio<1750)return false;
+async function playsHevc(codec:string|undefined){
+  if(!codec)return false;
   try{
     const verdict=await navigator.mediaCapabilities?.decodingInfo({type:'file',video:{contentType:codec,width:2560,height:1440,bitrate:3_000_000,framerate:24}});
     if(verdict)return verdict.supported&&verdict.smooth;
@@ -30,55 +37,101 @@ function shuffled<T>(list:T[]){
   return out;
 }
 
-// Two players take turns: the one in view plays its clip while the other loads the next, and they change places
-// only when the next has a frame to show, so there is never a poster, a gap or a clip in another shape.
-export function Backdrop({active,onShowing}:{active:boolean;onShowing:(showing:boolean)=>void}) {
+// Two players take turns. The one in view plays its clip while the other loads the next; a little before the end the
+// next one starts, and only once it is moving does it dissolve in over the first, which keeps playing underneath:
+// no poster, no gap, no frozen frame, no dip to black. `skip` (the logo was clicked) brings the next clip at once.
+export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;onShowing:(showing:boolean)=>void}) {
   const first=useRef<HTMLVideoElement>(null),second=useRef<HTMLVideoElement>(null);
   const [front,setFront]=useState(0);
+  const [leaving,setLeaving]=useState(-1);
   const [showing,setShowing]=useState(false);
   const [started,setStarted]=useState(false);
-  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],root:'',front:0,active:false,big:false});
+  const [note,setNote]=useState('');
+  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],root:'',front:0,active:false,hevc:false,mbps:0,changing:false,advance:(now?:boolean):boolean=>Boolean(now)&&false,mark:()=>{}});
+
   useEffect(()=>{state.current.active=active;},[active]);
   useEffect(()=>{onShowing(showing);},[showing,onShowing]);
 
   useEffect(()=>{
     const s=state.current;
-    const connection=(navigator as Navigator&{connection?:{saveData?:boolean}}).connection;
+    const connection=(navigator as Navigator&{connection?:{saveData?:boolean;downlink?:number}}).connection;
     if(matchMedia('(prefers-reduced-motion: reduce)').matches||connection?.saveData)return;
-    let gone=false;
+    let gone=false,frame=0;
     const player=(n:number)=>(n?second:first).current;
     const next=()=>{if(!s.queue.length)s.queue=shuffled(s.clips);return s.queue.pop()!;};
-    const load=(video:HTMLVideoElement)=>{const clip=next(),file=s.big&&clip.big?clip.big:clip.src;video.dataset.big=String(file===clip.big);video.dataset.small=s.root+clip.src;video.src=s.root+file;video.load();};
-    const swap=()=>{
-      const showingNow=player(s.front),waiting=player(1-s.front);
-      if(gone||!showingNow||!waiting)return;
-      if(waiting.readyState<3){showingNow.currentTime=0;showingNow.play().catch(()=>{});return;}   // the next is not ready: once more
-      s.front=1-s.front;setFront(s.front);
-      if(s.active)waiting.play().catch(()=>{});
-      setTimeout(()=>{if(!gone)load(showingNow);},400);   // after the cross-fade, the one that left loads the clip after
+    // the largest size that arrives in two of a clip's five seconds, as far as the screen can show it
+    const sizeFor=(clip:Clip):Size=>{
+      const wide=Math.max(innerWidth,innerHeight*16/9)*devicePixelRatio;
+      const fits=(size:Size)=>weightOf(clip,size)*8/1e6/2<=s.mbps;
+      if(s.hevc&&clip.big&&wide>2100&&fits('big'))return 'big';
+      if(s.hevc&&clip.mid&&wide>1700&&fits('mid'))return 'mid';
+      return 'src';
+    };
+    const load=(video:HTMLVideoElement)=>{
+      const clip=next(),size=sizeFor(clip),began=performance.now();
+      video.dataset.id=clip.id;video.dataset.size=size;video.dataset.small=s.root+clip.src;
+      video.addEventListener('canplaythrough',()=>{   // how fast it really came: the next choice leans on it
+        const seconds=(performance.now()-began)/1000;
+        if(seconds>0.05){const seen=weightOf(clip,size)*8/1e6/seconds;s.mbps=s.mbps?s.mbps*0.6+seen*0.4:seen;}
+      },{once:true});
+      video.src=s.root+(clip[size]??clip.src);video.load();
+    };
+    const change=(now=false)=>{
+      const current=player(s.front),waiting=player(1-s.front);
+      if(gone||s.changing||!current||!waiting||waiting.readyState<3||!s.active)return false;
+      s.changing=true;waiting.currentTime=0;
+      waiting.play().then(()=>{
+        if(gone)return;
+        const was=s.front;s.front=1-was;setLeaving(was);setFront(s.front);   // it moves: now it dissolves in over the other
+        setTimeout(()=>{if(gone)return;current.pause();setLeaving(-1);load(current);s.changing=false;},now?450:750);
+      }).catch(()=>{s.changing=false;});
+      return true;
+    };
+    s.advance=change;
+    const watch=()=>{   // a little before the clip in view ends, the next takes over
+      const current=player(s.front);
+      if(current&&s.active&&!current.paused&&current.duration&&current.currentTime>=current.duration-0.75)change();
+      frame=requestAnimationFrame(watch);
+    };
+    // m, on a development machine: the clip in view is no good
+    s.mark=()=>{
+      const current=player(s.front),id=current?.dataset.id;
+      if(!local()||!id)return;
+      fetch(`${location.protocol}//${location.hostname}:3123/api/noplay`,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tid:id,from:'site'})})
+        .then(r=>r.ok?r.json() as Promise<{shaky?:boolean}>:Promise.reject(new Error(String(r.status))))
+        .then(answer=>{
+          s.clips=s.clips.filter(clip=>clip.id!==id);s.queue=s.queue.filter(clip=>clip.id!==id);
+          setNote(answer.shaky?'no good: nothing smooth is left of this clip, it is out':'no good: the studio is making this background again from another stretch');
+          change(true);
+        }).catch(()=>setNote('not marked: the studio\'s Video library did not answer'));
+      setTimeout(()=>setNote(''),4200);
     };
     const begin=async()=>{
       try{
         s.root=base();
-        const listed=await fetch(s.root+'index.json').then(r=>r.ok?r.json() as Promise<Listed>:null);
+        const listed=await fetch(s.root+'index.json',{cache:'no-cache'}).then(r=>r.ok?r.json() as Promise<Listed>:null);
         if(gone||!listed?.clips?.length)return;
-        s.clips=listed.clips;s.big=await wantsBig(listed.big_codec);
-        if(gone)return;
+        s.clips=listed.clips;s.hevc=await playsHevc(listed.big_codec);
+        s.mbps=connection?.downlink??5;   // what the browser says of the connection (Chromium only, and never above 10); elsewhere a middling guess until clips have been timed
         const [a,b]=[player(0),player(1)];
-        if(!a||!b)return;
-        for(const video of [a,b]){video.addEventListener('ended',()=>{if(video===player(s.front))swap();});video.addEventListener('error',()=>{
-          if(video.dataset.big==='true'&&video.dataset.small){s.big=false;video.dataset.big='false';video.src=video.dataset.small;video.load();if(video===player(s.front)&&s.active)video.play().catch(()=>{});return;}   // the big one would not play here after all: the small one, from now on
-          if(video!==player(s.front))load(video);else swap();
-        });}
+        if(gone||!a||!b)return;
+        for(const video of [a,b]){
+          video.addEventListener('ended',()=>{if(video===player(s.front)&&!change()){video.currentTime=0;video.play().catch(()=>{});}});   // the next is not ready: once more
+          video.addEventListener('error',()=>{
+            if(video.dataset.size!=='src'&&video.dataset.small){s.hevc=false;video.dataset.size='src';video.src=video.dataset.small;video.load();if(video===player(s.front)&&s.active)video.play().catch(()=>{});return;}   // it would not play here after all: the small ones, from now on
+            if(video!==player(s.front))load(video);
+          });
+        }
         a.addEventListener('playing',()=>setShowing(true),{once:true});
         load(a);load(b);setStarted(true);   // playing is the next effect's business: only while the opening screen is in view
+        frame=requestAnimationFrame(watch);
       }catch{/* no backgrounds: the opening screen stays as it is */}
     };
     // after the page has settled: the wordmark and the sculpture come first
     const idle=(window as Window&{requestIdleCallback?:(run:()=>void,options?:{timeout:number})=>number}).requestIdleCallback;
     const timer=idle?idle(()=>{void begin();},{timeout:2500}):window.setTimeout(()=>{void begin();},1200);
     const [a,b]=[player(0),player(1)];
-    return()=>{gone=true;if(!idle)clearTimeout(timer);for(const video of [a,b]){if(video){video.pause();video.removeAttribute('src');video.load();}}};
+    return()=>{gone=true;cancelAnimationFrame(frame);if(!idle)clearTimeout(timer);for(const video of [a,b]){if(video){video.pause();video.removeAttribute('src');video.load();}}};
   },[]);
 
   // out of view (a project, About, Contact, another tab): the clip waits where it is
@@ -90,8 +143,23 @@ export function Backdrop({active,onShowing}:{active:boolean;onShowing:(showing:b
     return()=>document.removeEventListener('visibilitychange',sync);
   },[active,front,started]);
 
+  // the logo was clicked: another clip, at once
+  const skipped=useRef(skip);
+  useEffect(()=>{if(skip===skipped.current)return;skipped.current=skip;state.current.advance(true);},[skip]);
+
+  useEffect(()=>{
+    const key=(event:KeyboardEvent)=>{
+      if(event.key.toLowerCase()!=='m'||event.metaKey||event.ctrlKey||event.altKey||!state.current.active)return;
+      if((event.target as HTMLElement|null)?.closest?.('input,textarea,select,[contenteditable=true]'))return;
+      state.current.mark();
+    };
+    window.addEventListener('keydown',key);
+    return()=>window.removeEventListener('keydown',key);
+  },[]);
+
   return <div className="futuro-backdrop" data-showing={showing} aria-hidden="true">
-    <video ref={first} data-on={front===0} muted playsInline preload="auto" disablePictureInPicture tabIndex={-1}/>
-    <video ref={second} data-on={front===1} muted playsInline preload="auto" disablePictureInPicture tabIndex={-1}/>
+    <video ref={first} data-on={front===0} data-leaving={leaving===0} muted playsInline preload="auto" disablePictureInPicture tabIndex={-1}/>
+    <video ref={second} data-on={front===1} data-leaving={leaving===1} muted playsInline preload="auto" disablePictureInPicture tabIndex={-1}/>
+    {note&&<p className="futuro-backdrop-note">{note}</p>}
   </div>;
 }

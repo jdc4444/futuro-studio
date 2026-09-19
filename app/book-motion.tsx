@@ -43,23 +43,22 @@ export function BookMotion({config}:{config:Config}){
  </figure>;
 }
 
+const OPENING_STUDY=21;   // Butterflies / floating sections
+const HIDDEN_STUDIES=[5];   // Tree in the wind: not among the studies the opening screen shows
 export function LightMotion({cycle=0,cameraStep=0,dragOnParent=false,outerOnly=false,active=true,enabled,onEnabled,layout,onLayout}:{cycle?:number;cameraStep?:number;dragOnParent?:boolean;outerOnly?:boolean;active?:boolean;enabled:boolean;onEnabled:(value:boolean)=>void;layout:string;onLayout:(value:string)=>void}){
- const [study,setStudy]=useState('7');
+ const [study,setStudy]=useState(String(OPENING_STUDY));
  const [frameReady,setFrameReady]=useState(false);
  const angles=['front','three-quarter','elevated','profile','extreme-high','extreme-low'];
  const [cameraAngle,setCameraAngle]=useState('three-quarter');
  const randomAngle=()=>{let previous:string|null=null;try{previous=sessionStorage.getItem('light-last-angle');}catch{}const options=angles.filter(angle=>angle!==previous&&angle!==cameraAngle);const next=options[Math.floor(Math.random()*options.length)];setCameraAngle(next);try{sessionStorage.setItem('light-last-angle',next);}catch{}};
  useEffect(()=>{
   randomAngle();
-  let previous:string|null=null;
-  try{previous=sessionStorage.getItem('light-last-animation');}catch{}
-  const candidates=studies.filter(item=>String(item.id)!==previous);
-  const next=String(candidates[Math.floor(Math.random()*candidates.length)].id);
-  setStudy(next);
-  try{sessionStorage.setItem('light-last-animation',next);}catch{}
+  // a fresh page opens on the butterflies; a click brings another study (never the tree, which is put away)
+  setStudy(String(OPENING_STUDY));
+  try{sessionStorage.setItem('light-last-animation',String(OPENING_STUDY));}catch{}
  },[]);
  const previousCycle=useRef(cycle);
- useEffect(()=>{if(cycle===previousCycle.current)return;previousCycle.current=cycle;randomAngle();setStudy(value=>{const options=studies.filter(item=>String(item.id)!==value);const next=String(options[Math.floor(Math.random()*options.length)].id);try{sessionStorage.setItem('light-last-animation',next);}catch{}return next;});},[cycle]);
+ useEffect(()=>{if(cycle===previousCycle.current)return;previousCycle.current=cycle;randomAngle();setStudy(value=>{const options=studies.filter(item=>String(item.id)!==value&&!HIDDEN_STUDIES.includes(item.id));const next=String(options[Math.floor(Math.random()*options.length)].id);try{sessionStorage.setItem('light-last-animation',next);}catch{}return next;});},[cycle]);
  const previousCameraStep=useRef(cameraStep);
  useEffect(()=>{if(cameraStep===previousCameraStep.current)return;previousCameraStep.current=cameraStep;randomAngle();},[cameraStep]);
  const [playing,setPlaying]=useState<boolean|null>(null);
