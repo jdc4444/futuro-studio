@@ -9,7 +9,20 @@ import {useEffect,useRef,useState} from 'react';
 const PUBLISHED='https://jdc4444.github.io/futuro-backgrounds/';
 const base=()=>/^(localhost|127\.0\.0\.1)$/.test(location.hostname)?`${location.protocol}//${location.hostname}:3124/`:PUBLISHED;
 
-type Clip={id:string;src:string};
+// A clip comes in two sizes: src (H.264, long side 1600: every browser, small screens) and big (HEVC 10-bit, long side
+// 2560: next to the studio's own 2560 it is hard to tell apart). The big one is for a screen wide enough to show the
+// difference, in a browser that says it plays it smoothly; if one still fails to play, this visit stays with the small.
+type Clip={id:string;src:string;big?:string};
+type Listed={clips?:Clip[];big_codec?:string};
+
+async function wantsBig(codec:string|undefined){
+  if(!codec||Math.max(innerWidth,innerHeight)*devicePixelRatio<1750)return false;
+  try{
+    const verdict=await navigator.mediaCapabilities?.decodingInfo({type:'file',video:{contentType:codec,width:2560,height:1440,bitrate:3_000_000,framerate:24}});
+    if(verdict)return verdict.supported&&verdict.smooth;
+  }catch{/* an older browser: ask the element instead */}
+  return document.createElement('video').canPlayType(codec)==='probably';
+}
 
 function shuffled<T>(list:T[]){
   const out=[...list];
@@ -24,7 +37,7 @@ export function Backdrop({active,onShowing}:{active:boolean;onShowing:(showing:b
   const [front,setFront]=useState(0);
   const [showing,setShowing]=useState(false);
   const [started,setStarted]=useState(false);
-  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],root:'',front:0,active:false});
+  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],root:'',front:0,active:false,big:false});
   useEffect(()=>{state.current.active=active;},[active]);
   useEffect(()=>{onShowing(showing);},[showing,onShowing]);
 
@@ -35,7 +48,7 @@ export function Backdrop({active,onShowing}:{active:boolean;onShowing:(showing:b
     let gone=false;
     const player=(n:number)=>(n?second:first).current;
     const next=()=>{if(!s.queue.length)s.queue=shuffled(s.clips);return s.queue.pop()!;};
-    const load=(video:HTMLVideoElement)=>{const clip=next();video.src=s.root+clip.src;video.load();};
+    const load=(video:HTMLVideoElement)=>{const clip=next(),file=s.big&&clip.big?clip.big:clip.src;video.dataset.big=String(file===clip.big);video.dataset.small=s.root+clip.src;video.src=s.root+file;video.load();};
     const swap=()=>{
       const showingNow=player(s.front),waiting=player(1-s.front);
       if(gone||!showingNow||!waiting)return;
@@ -47,12 +60,16 @@ export function Backdrop({active,onShowing}:{active:boolean;onShowing:(showing:b
     const begin=async()=>{
       try{
         s.root=base();
-        const listed=await fetch(s.root+'index.json').then(r=>r.ok?r.json() as Promise<{clips?:Clip[]}>:null);
+        const listed=await fetch(s.root+'index.json').then(r=>r.ok?r.json() as Promise<Listed>:null);
         if(gone||!listed?.clips?.length)return;
-        s.clips=listed.clips;
+        s.clips=listed.clips;s.big=await wantsBig(listed.big_codec);
+        if(gone)return;
         const [a,b]=[player(0),player(1)];
         if(!a||!b)return;
-        for(const video of [a,b]){video.addEventListener('ended',()=>{if(video===player(s.front))swap();});video.addEventListener('error',()=>{if(video!==player(s.front))load(video);else swap();});}
+        for(const video of [a,b]){video.addEventListener('ended',()=>{if(video===player(s.front))swap();});video.addEventListener('error',()=>{
+          if(video.dataset.big==='true'&&video.dataset.small){s.big=false;video.dataset.big='false';video.src=video.dataset.small;video.load();if(video===player(s.front)&&s.active)video.play().catch(()=>{});return;}   // the big one would not play here after all: the small one, from now on
+          if(video!==player(s.front))load(video);else swap();
+        });}
         a.addEventListener('playing',()=>setShowing(true),{once:true});
         load(a);load(b);setStarted(true);   // playing is the next effect's business: only while the opening screen is in view
       }catch{/* no backgrounds: the opening screen stays as it is */}
