@@ -7,7 +7,8 @@ import {useEffect,useRef,useState} from 'react';
 // the site stays light and the clips can change without a deploy. index.json there lists them.
 // On a development machine the same folder is served next door (the studio's launcher, port 3124), and the m key
 // tells the studio's Video library (port 3123) that the clip in view is no good: it then makes that background
-// again from another smooth stretch of the clip, or drops a clip that has none left.
+// again from another smooth stretch of the clip, or drops a clip that has none left. cmd-Z takes the last mark
+// back: the studio puts the background back as it was, and the clip returns to the screen.
 const PUBLISHED='https://jdc4444.github.io/futuro-backgrounds/';
 const local=()=>/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 const base=()=>local()?`${location.protocol}//${location.hostname}:3124/`:PUBLISHED;
@@ -17,7 +18,8 @@ const base=()=>local()?`${location.protocol}//${location.hostname}:3124/`:PUBLIS
 // is asked for follows the browser (does it play HEVC smoothly), the screen (is it wide enough to show the difference)
 // and the connection: what the browser says of it at first, then how fast the clips before really arrived.
 type Size='src'|'mid'|'big';
-type Clip={id:string;src:string;mid?:string;big?:string;bytes?:number;mid_bytes?:number;big_bytes?:number};
+type Clip={id:string;src:string;mid?:string;big?:string;bytes?:number;mid_bytes?:number;big_bytes?:number;at?:number};   // at: where in its clip the snippet starts
+type Answer={ok?:boolean;shaky?:boolean;tid?:string;at?:number|null};   // the studio, to a mark or to a mark taken back
 type Listed={clips?:Clip[];big_codec?:string};
 const WEIGHT:Record<Size,number>={src:0.9e6,mid:1.0e6,big:1.5e6};   // bytes, when the list does not say
 const weightOf=(clip:Clip,size:Size)=>(size==='src'?clip.bytes:size==='mid'?clip.mid_bytes:clip.big_bytes)??WEIGHT[size];
@@ -40,7 +42,8 @@ function shuffled<T>(list:T[]){
 // Two players take turns. The one in view plays its clip while the other loads the next; just before the end the next
 // one starts, and the moment it is moving it takes the first one's place: a plain cut, no poster, no gap, no frozen
 // frame. `skip` (the logo was clicked) and the right arrow bring the next clip at once, the left arrow the one before;
-// on a development machine m marks the clip in view no good and cmd-Z takes the last mark back.
+// on a development machine m marks the clip in view no good and cmd-Z takes the last mark back, which brings its clip
+// back into view as soon as the studio has its background in place again.
 export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;onShowing:(showing:boolean)=>void}) {
   const first=useRef<HTMLVideoElement>(null),second=useRef<HTMLVideoElement>(null);
   const [front,setFront]=useState(0);
@@ -48,7 +51,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
   const [showing,setShowing]=useState(false);
   const [started,setStarted]=useState(false);
   const [note,setNote]=useState('');
-  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],seen:[] as Clip[],at:-1,marked:[] as Clip[],root:'',front:0,active:false,hevc:false,mbps:0,changing:false,advance:(now?:boolean):boolean=>Boolean(now)&&false,step:(_by:number)=>{},mark:()=>{},unmark:()=>{}});
+  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],seen:[] as Clip[],at:-1,aim:null as number|null,asked:0,waits:{} as Record<string,number>,root:'',front:0,active:false,hevc:false,mbps:0,changing:false,advance:(now?:boolean):boolean=>Boolean(now)&&false,step:(_by:number)=>{},mark:()=>{},unmark:()=>{}});
 
   useEffect(()=>{state.current.active=active;},[active]);
   useEffect(()=>{onShowing(showing);},[showing,onShowing]);
@@ -57,7 +60,12 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
     const s=state.current;
     const connection=(navigator as Navigator&{connection?:{saveData?:boolean;downlink?:number}}).connection;
     if(matchMedia('(prefers-reduced-motion: reduce)').matches||connection?.saveData)return;
-    let gone=false,frame=0;
+    // a fresh start, every time this mounts: a hot reload during development keeps the object of the version before it,
+    // which may lack what this one counts with, or be left in the middle of a change that will never finish
+    Object.assign(s,{queue:[],seen:[],at:-1,aim:null,asked:0,waits:{},changing:false});
+    let gone=false,frame=0,noted=0;
+    const off=new AbortController();   // what this mount listens to on the two players stops with it (they outlive a hot reload)
+    const say=(text:string,ms=4200)=>{window.clearTimeout(noted);setNote(text);if(text&&ms)noted=window.setTimeout(()=>setNote(''),ms);};
     const player=(n:number)=>(n?second:first).current;
     const next=()=>{if(!s.queue.length)s.queue=shuffled(s.clips);return s.queue.pop()!;};
     // the largest size that arrives in two of a clip's five seconds, as far as the screen can show it
@@ -69,13 +77,14 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
       return 'src';
     };
     const byId=(id:string|undefined)=>s.clips.find(clip=>clip.id===id);
-    const load=(video:HTMLVideoElement,wanted?:Clip)=>{
+    // `to`: the clip is one already seen, asked for with an arrow, and this its place among them
+    const load=(video:HTMLVideoElement,wanted?:Clip,to?:number)=>{
       const clip=wanted??next(),size=sizeFor(clip),began=performance.now();
-      video.dataset.id=clip.id;video.dataset.again=String(Boolean(wanted));video.dataset.size=size;video.dataset.small=s.root+clip.src;
+      video.dataset.id=clip.id;video.dataset.to=to===undefined?'':String(to);video.dataset.size=size;video.dataset.small=s.root+clip.src;
       video.addEventListener('canplaythrough',()=>{   // how fast it really came: the next choice leans on it
         const seconds=(performance.now()-began)/1000;
         if(seconds>0.05){const seen=weightOf(clip,size)*8/1e6/seconds;s.mbps=s.mbps?s.mbps*0.6+seen*0.4:seen;}
-      },{once:true});
+      },{once:true,signal:off.signal});
       video.src=s.root+(clip[size]??clip.src);video.load();
     };
     const change=(now=false)=>{
@@ -83,23 +92,51 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
       if(gone||s.changing||!current||!waiting||waiting.readyState<3||!s.active)return false;
       s.changing=true;waiting.currentTime=0;
       waiting.play().then(()=>{
-        if(gone)return;
+        if(gone){s.changing=false;return;}
         const was=s.front;s.front=1-was;setLeaving(was);setFront(s.front);   // it moves: it takes the other's place, a plain cut
-        const shown=byId(waiting.dataset.id);
-        if(shown&&waiting.dataset.again!=='true'){s.seen=s.seen.slice(0,s.at+1);s.seen.push(shown);if(s.seen.length>60)s.seen.shift();s.at=s.seen.length-1;}   // what was seen, for the left arrow
-        setTimeout(()=>{if(gone)return;current.pause();setLeaving(-1);load(current);s.changing=false;},now?80:120);
+        const shown=byId(waiting.dataset.id);s.aim=null;
+        if(waiting.dataset.to)s.at=Number(waiting.dataset.to);   // an arrow through what was seen: only the place among them moves
+        else if(shown){s.seen=s.seen.slice(0,s.at+1);s.seen.push(shown);if(s.seen.length>60)s.seen.shift();s.at=s.seen.length-1;}   // what was seen, for the left arrow
+        setTimeout(()=>{s.changing=false;if(gone)return;current.pause();setLeaving(-1);load(current);},now?80:120);
       }).catch(()=>{s.changing=false;});
       return true;
     };
     s.advance=change;
-    // the arrows: right is the next clip (or the one after the clip gone back to), left the one before
-    s.step=(by:number)=>{
-      const to=s.at+by,waiting=player(1-s.front);
-      if(by>0&&to>=s.seen.length){change(true);return;}
-      if(to<0||!waiting||s.changing)return;
-      s.at=to;load(waiting,s.seen[to]);
-      waiting.addEventListener('canplay',()=>{change(true);},{once:true});
+    // this clip, now: it loads in the player that waits and takes over the moment it can play. A later request wins over
+    // an earlier one still loading, and one that arrives in the middle of a change waits for the change to end.
+    const bring=(clip:Clip,to?:number,mine=++s.asked)=>{
+      if(gone||mine!==s.asked)return;
+      if(s.changing){window.setTimeout(()=>bring(clip,to,mine),150);return;}
+      const waiting=player(1-s.front);
+      if(!waiting)return;
+      let tries=0;
+      const go=()=>{
+        if(gone||mine!==s.asked||waiting.dataset.id!==clip.id)return;   // something else was asked for since, or the clip would not load and another took the player
+        if(!change(true)&&++tries<20)window.setTimeout(go,120);
+      };
+      load(waiting,clip,to);waiting.addEventListener('canplay',go,{once:true,signal:off.signal});
     };
+    // the arrows: right is the next clip (or the one after the clip gone back to), left the one before; pressed twice
+    // before the first has landed, they count from where the first is heading
+    s.step=(by:number)=>{
+      const to=(s.aim??s.at)+by;
+      if(by>0&&to>=s.seen.length){s.aim=null;s.asked++;change(true);return;}
+      if(to<0)return;
+      s.aim=to;bring(s.seen[to],to);
+    };
+    // the studio answers a mark, or a mark taken back, by making the clip's background again or putting it back: the list
+    // says so when the clip is on it with its snippet starting where the studio said it would
+    const listed=async(id:string,at:number)=>{
+      const mine=s.waits[id]=(s.waits[id]??0)+1;
+      for(let n=0;n<90&&!gone&&s.waits[id]===mine;n++){   // a background set aside is back in a second; one that has to be made again takes most of a minute
+        const list=await fetch(s.root+'index.json',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<Listed>:null).catch(()=>null);
+        const clip=list?.clips?.find(entry=>entry.id===id);
+        if(clip&&Math.abs((clip.at??-1)-at)<0.002)return s.waits[id]===mine&&!gone?clip:null;
+        await new Promise(done=>window.setTimeout(done,700));
+      }
+      return null;
+    };
+    const shuffleIn=(clip:Clip)=>{s.clips=[...s.clips.filter(entry=>entry.id!==clip.id),clip];s.queue=s.queue.filter(entry=>entry.id!==clip.id);};
     const watch=()=>{   // a little before the clip in view ends, the next takes over
       const current=player(s.front);
       if(current&&s.active&&!current.paused&&current.duration&&current.currentTime>=current.duration-0.12)change();
@@ -110,23 +147,28 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
       const current=player(s.front),id=current?.dataset.id;
       if(!local()||!id)return;
       fetch(`${location.protocol}//${location.hostname}:3123/api/noplay`,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tid:id,from:'site'})})
-        .then(r=>r.ok?r.json() as Promise<{shaky?:boolean}>:Promise.reject(new Error(String(r.status))))
+        .then(r=>r.ok?r.json() as Promise<Answer>:Promise.reject(new Error(String(r.status))))
         .then(answer=>{
-          const clip=byId(id);if(clip)s.marked.push(clip);
-          s.clips=s.clips.filter(clip=>clip.id!==id);s.queue=s.queue.filter(clip=>clip.id!==id);s.seen=s.seen.filter(clip=>clip.id!==id);s.at=Math.min(s.at,s.seen.length-1);
-          setNote(answer.shaky?'no good: nothing smooth is left of this clip, it is out':'no good: the studio is making this background again from another stretch');
-          change(true);
-        }).catch(()=>setNote('not marked: the studio\'s Video library did not answer'));
-      setTimeout(()=>setNote(''),4200);
+          s.clips=s.clips.filter(clip=>clip.id!==id);s.queue=s.queue.filter(clip=>clip.id!==id);s.seen=s.seen.filter(clip=>clip.id!==id);s.at=Math.min(s.at,s.seen.length-1);s.aim=null;
+          say(answer.shaky?'no good: nothing smooth is left of this clip, it is out · cmd-Z takes it back':'no good: the studio is making this background again from another stretch · cmd-Z takes it back');
+          s.asked++;change(true);
+          if(!answer.shaky&&answer.at!=null)void listed(id,answer.at).then(clip=>{if(clip){shuffleIn(clip);s.queue.unshift(clip);}});   // made again: it returns to the shuffle, from its other stretch
+        }).catch(()=>say('not marked: the studio\'s Video library did not answer'));
     };
     // cmd-Z, on a development machine: the last mark is taken back, and the clip returns to the shuffle
     s.unmark=()=>{
       if(!local())return;
       fetch(`${location.protocol}//${location.hostname}:3123/api/noplay`,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({undo:true,from:'site'})})
-        .then(r=>r.ok?r.json() as Promise<{ok?:boolean}>:Promise.reject(new Error(String(r.status))))
-        .then(answer=>{const clip=s.marked.pop();if(answer.ok&&clip){s.clips.push(clip);s.queue.push(clip);}setNote(answer.ok?'the last mark is taken back':'there is no mark to take back');})
-        .catch(()=>setNote('not undone: the studio\'s Video library did not answer'));
-      setTimeout(()=>setNote(''),4200);
+        .then(r=>r.ok?r.json() as Promise<Answer>:Promise.reject(new Error(String(r.status))))
+        .then(async answer=>{
+          if(!answer.ok){say('there is no mark to take back');return;}
+          if(!answer.tid||answer.at==null){say('the last mark is taken back · another mark still keeps its clip out');return;}
+          say('the last mark is taken back: its clip is coming back',0);
+          const clip=await listed(answer.tid,answer.at);   // the studio puts the background back as it was (or makes it again)
+          if(gone)return;
+          if(!clip){say('the last mark is taken back · its background is still being made: the clip is in the shuffle after a reload');return;}
+          shuffleIn(clip);say('the last mark is taken back');bring(clip);   // back in view: the arrows go on from it
+        }).catch(()=>say('not undone: the studio\'s Video library did not answer'));
     };
     const begin=async()=>{
       try{
@@ -138,13 +180,26 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
         const [a,b]=[player(0),player(1)];
         if(gone||!a||!b)return;
         for(const video of [a,b]){
-          video.addEventListener('ended',()=>{if(video===player(s.front)&&!change()){video.currentTime=0;video.play().catch(()=>{});}});   // the next is not ready: once more
+          video.addEventListener('ended',()=>{if(video===player(s.front)&&!change()){video.currentTime=0;video.play().catch(()=>{});}},{signal:off.signal});   // the next is not ready: once more
           video.addEventListener('error',()=>{
-            if(video.dataset.size!=='src'&&video.dataset.small){s.hevc=false;video.dataset.size='src';video.src=video.dataset.small;video.load();if(video===player(s.front)&&s.active)video.play().catch(()=>{});return;}   // it would not play here after all: the small ones, from now on
+            const small=video.dataset.small,failed=video.currentSrc||video.src;
+            if(video.dataset.size!=='src'&&small){
+              // the larger file would not play. Is it this browser (then the small ones, from now on), or is the file away for a moment (the studio is making it again)?
+              video.dataset.size='src';
+              void fetch(failed,{method:'HEAD',cache:'no-store'}).then(r=>r.ok,()=>false).then(there=>{
+                if(gone)return;
+                if(there)s.hevc=false;
+                video.src=small;video.load();if(video===player(s.front)&&s.active)video.play().catch(()=>{});
+              });
+              return;
+            }
             if(video!==player(s.front))load(video);
-          });
+          },{signal:off.signal});
         }
-        a.addEventListener('playing',()=>{setShowing(true);const shown=byId(a.dataset.id);if(shown&&s.at<0){s.seen=[shown];s.at=0;}},{once:true});
+        for(const video of [a,b])video.addEventListener('playing',()=>{   // the first clip to show opens the list of what was seen
+          setShowing(true);
+          if(s.at<0&&video===player(s.front)){const shown=byId(video.dataset.id);if(shown){s.seen=[shown];s.at=0;}}
+        },{signal:off.signal});
         load(a);load(b);setStarted(true);   // playing is the next effect's business: only while the opening screen is in view
         frame=requestAnimationFrame(watch);
       }catch{/* no backgrounds: the opening screen stays as it is */}
@@ -153,7 +208,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
     const idle=(window as Window&{requestIdleCallback?:(run:()=>void,options?:{timeout:number})=>number}).requestIdleCallback;
     const timer=idle?idle(()=>{void begin();},{timeout:2500}):window.setTimeout(()=>{void begin();},1200);
     const [a,b]=[player(0),player(1)];
-    return()=>{gone=true;cancelAnimationFrame(frame);if(!idle)clearTimeout(timer);for(const video of [a,b]){if(video){video.pause();video.removeAttribute('src');video.load();}}};
+    return()=>{gone=true;off.abort();cancelAnimationFrame(frame);window.clearTimeout(noted);if(!idle)clearTimeout(timer);for(const video of [a,b]){if(video){video.pause();video.removeAttribute('src');video.load();}}};
   },[]);
 
   // out of view (a project, About, Contact, another tab): the clip waits where it is
