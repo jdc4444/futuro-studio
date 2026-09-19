@@ -5,6 +5,7 @@ import {LightMotion} from './book-motion';
 import {LightTypography} from './light-typography';
 import {ResumeEntries} from './resume-entries';
 import {PilotProjects} from './pilot/pilot-projects';
+import {Backdrop} from './pilot/backdrop';
 import './pilot/pilot.css';
 import {futuroTranslations} from './futuro-translations';
 import weightFonts from './weight-fonts.json';
@@ -48,6 +49,7 @@ export default function Home({pilot=true}:{pilot?:boolean}={}){
  const [pilotOpen,setPilotOpen]=useState(false);
  const [pilotCameraStep,setPilotCameraStep]=useState(0);
  const [homeRequest,setHomeRequest]=useState(0);
+ const [backdrop,setBackdrop]=useState(false);
  const projectIsOpen=pilot&&pilotOpen&&view==='home';
  const cornerChangesAnimation=view==='home'&&(pilot?pilotIntro&&!pilotOpen:heroVisible);
  const surfaceTheme=projectIsOpen?'light':theme;
@@ -80,7 +82,7 @@ export default function Home({pilot=true}:{pilot?:boolean}={}){
  const entries=useMemo(()=>languages.map(([locale,,script])=>{const text=futuroTranslations[locale][0].toLocaleLowerCase(locale),native=Array.from(text.normalize('NFC')).every(c=>coverage['Raleway Dots'].includes(c.codePointAt(0)!));return {locale,script,text,family:native?'Raleway Dots':script==='Latin'?'Raleway':weightFonts[script as keyof typeof weightFonts],weight:native?400:300};}),[]);
  const resting=useMemo(()=>entries.map(e=>e.locale==='en'?{...e,text:'futuro'}:e),[entries]);
  useEffect(()=>{if(!hover)return;const timer=setInterval(()=>setIndex(i=>(i+1)%languages.length),1000/11.25);return()=>clearInterval(timer)},[hover]);
- return <div className={`futuro-site${pilot?' futuro-pilot':''}`} data-theme={theme} data-view={view} data-pilot-intro={pilotIntro} data-pilot-footage={pilotFootage} data-pilot-open={pilotOpen}><div className="futuro-hero" ref={hero}><div className="experience with-motion light-layout-center futuro-surface">
+ return <div className={`futuro-site${pilot?' futuro-pilot':''}`} data-theme={theme} data-view={view} data-pilot-intro={pilotIntro} data-pilot-footage={pilotFootage} data-pilot-open={pilotOpen} data-backdrop={backdrop}>{pilot&&<Backdrop active={view==='home'&&pilotIntro&&!pilotOpen} onShowing={setBackdrop}/>}<div className="futuro-hero" ref={hero}><div className="experience with-motion light-layout-center futuro-surface">
  <button className="phrases single-phrase" style={{visibility:view==='home'&&(!pilot||pilotIntro)?'visible':'hidden'}} tabIndex={view==='home'&&(!pilot||pilotIntro)?0:-1} aria-hidden={view!=='home'||(pilot&&!pilotIntro)} type="button" aria-label="futuro — hover for translations, click for another animation" onPointerEnter={e=>{if(e.pointerType==='mouse')setHover(true)}} onPointerLeave={()=>setHover(false)} onFocus={e=>{if(e.currentTarget.matches(':focus-visible'))setHover(true)}} onBlur={()=>setHover(false)} onClick={()=>setCycle(c=>c+1)}><LightTypography dotted onSize={setLogoSize} entries={hover?entries:resting} visible={[hover?languages[(index+1)%languages.length][0]:'en']} layout="center"/></button>
  <LightMotion cycle={cycle} cameraStep={pilotCameraStep} dragOnParent={pilot&&pilotIntro&&view==='home'} outerOnly={(pilot&&!pilotIntro)||view!=='home'} active={pilot?(!pilotOpen||view!=='home'):heroVisible} enabled onEnabled={()=>{}} layout="center" onLayout={()=>{}}/>
  </div></div>

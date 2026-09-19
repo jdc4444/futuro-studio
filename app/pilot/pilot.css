@@ -8,6 +8,20 @@ html:has(.futuro-pilot),html:has(.futuro-pilot) body{height:100%;overflow:hidden
 .futuro-pilot .pilot-scroll[data-open-project=false]{overflow-y:hidden}
 .pilot-project{position:relative;min-height:100svh;overflow-anchor:none}
 .pilot-intro{height:100svh;background:var(--futuro-background)}
+/* The opening screen's video backgrounds (backdrop.tsx): one fixed layer under the scroller, seen through the opening tile and
+   through its copy at the end of the loop alike; the wordmark and the sculpture sit on it in white, the corner labels as over
+   a project's footage. Until a clip plays, and where motion is unwanted, the screen is what it always was. */
+.futuro-backdrop{position:fixed;inset:0;z-index:0;background:#000;opacity:0;transition:opacity .8s ease;pointer-events:none;overflow:hidden}
+.futuro-backdrop[data-showing=true]{opacity:1}
+.futuro-backdrop video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .35s linear}
+.futuro-backdrop video[data-on=true]{opacity:1}
+.futuro-backdrop::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.34),rgba(0,0,0,.08) 22%,rgba(0,0,0,.08) 78%,rgba(0,0,0,.34))}
+.futuro-pilot[data-backdrop=true] .pilot-intro{background:transparent}
+.futuro-pilot[data-backdrop=true][data-view=home][data-pilot-intro=true] .futuro-hero{mix-blend-mode:screen}
+.futuro-pilot[data-backdrop=true][data-view=home][data-pilot-intro=true]>.futuro-information,
+.futuro-pilot[data-backdrop=true][data-view=home][data-pilot-intro=true]>.futuro-contact,
+.futuro-pilot[data-backdrop=true][data-view=home][data-pilot-intro=true]>.futuro-footer,
+.futuro-pilot[data-backdrop=true][data-view=home][data-pilot-intro=true]>.futuro-year{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.65)}
 .pilot-preview{position:relative;display:grid;place-items:center;width:100%;height:100svh;overflow:hidden;border:0;padding:80px 6vw;background:#000;color:#fff;cursor:pointer;text-align:center;isolation:isolate}
 .pilot-poster,.pilot-preview-film{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(var(--pilot-preview-scale,1));pointer-events:none}
 .pilot-poster{z-index:-3}
