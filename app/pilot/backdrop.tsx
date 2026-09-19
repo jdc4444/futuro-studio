@@ -8,7 +8,9 @@ import {useEffect,useRef,useState} from 'react';
 // On a development machine the same folder is served next door (the studio's launcher, port 3124), and the m key
 // tells the studio's Video library (port 3123) that the clip in view is no good: it then makes that background
 // again from another smooth stretch of the clip, or drops a clip that has none left. cmd-Z takes the last mark
-// back: the studio puts the background back as it was, and the clip returns to the screen.
+// back: the studio puts the background back as it was, and the clip returns to the screen. Beside m, n and , are the
+// smaller remedy: the clip is good but its ending (n), or its beginning (,), is messy, so its five seconds are taken a
+// second earlier, or later; the clip stays in view and plays from its new start as soon as the studio has made it.
 const PUBLISHED='https://jdc4444.github.io/futuro-backgrounds/';
 const local=()=>/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 const base=()=>local()?`${location.protocol}//${location.hostname}:3124/`:PUBLISHED;
@@ -19,7 +21,7 @@ const base=()=>local()?`${location.protocol}//${location.hostname}:3124/`:PUBLIS
 // and the connection: what the browser says of it at first, then how fast the clips before really arrived.
 type Size='src'|'mid'|'big';
 type Clip={id:string;src:string;mid?:string;big?:string;bytes?:number;mid_bytes?:number;big_bytes?:number;at?:number};   // at: where in its clip the snippet starts
-type Answer={ok?:boolean;shaky?:boolean;tid?:string;at?:number|null};   // the studio, to a mark or to a mark taken back
+type Answer={ok?:boolean;error?:string;shaky?:boolean;tid?:string;at?:number|null;shown?:number};   // the studio, to a mark, a nudge, or a mark taken back
 type Listed={clips?:Clip[];big_codec?:string};
 const WEIGHT:Record<Size,number>={src:0.9e6,mid:1.0e6,big:1.5e6};   // bytes, when the list does not say
 const weightOf=(clip:Clip,size:Size)=>(size==='src'?clip.bytes:size==='mid'?clip.mid_bytes:clip.big_bytes)??WEIGHT[size];
@@ -51,7 +53,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
   const [showing,setShowing]=useState(false);
   const [started,setStarted]=useState(false);
   const [note,setNote]=useState('');
-  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],seen:[] as Clip[],at:-1,aim:null as number|null,asked:0,waits:{} as Record<string,number>,root:'',front:0,active:false,hevc:false,mbps:0,changing:false,advance:(now?:boolean):boolean=>Boolean(now)&&false,step:(_by:number)=>{},mark:()=>{},unmark:()=>{}});
+  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],seen:[] as Clip[],at:-1,aim:null as number|null,asked:0,waits:{} as Record<string,number>,hold:null as string|null,root:'',front:0,active:false,hevc:false,mbps:0,changing:false,advance:(now?:boolean):boolean=>Boolean(now)&&false,step:(_by:number)=>{},mark:()=>{},nudge:(_by:number)=>{},unmark:()=>{}});
 
   useEffect(()=>{state.current.active=active;},[active]);
   useEffect(()=>{onShowing(showing);},[showing,onShowing]);
@@ -62,7 +64,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
     if(matchMedia('(prefers-reduced-motion: reduce)').matches||connection?.saveData)return;
     // a fresh start, every time this mounts: a hot reload during development keeps the object of the version before it,
     // which may lack what this one counts with, or be left in the middle of a change that will never finish
-    Object.assign(s,{queue:[],seen:[],at:-1,aim:null,asked:0,waits:{},changing:false});
+    Object.assign(s,{queue:[],seen:[],at:-1,aim:null,asked:0,waits:{},hold:null,changing:false});
     let gone=false,frame=0,noted=0;
     const off=new AbortController();   // what this mount listens to on the two players stops with it (they outlive a hot reload)
     const say=(text:string,ms=4200)=>{window.clearTimeout(noted);setNote(text);if(text&&ms)noted=window.setTimeout(()=>setNote(''),ms);};
@@ -80,16 +82,17 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
     // `to`: the clip is one already seen, asked for with an arrow, and this its place among them
     const load=(video:HTMLVideoElement,wanted?:Clip,to?:number)=>{
       const clip=wanted??next(),size=sizeFor(clip),began=performance.now();
-      video.dataset.id=clip.id;video.dataset.to=to===undefined?'':String(to);video.dataset.size=size;video.dataset.small=s.root+clip.src;
+      const stamp=clip.at===undefined?'':`?at=${clip.at}`;   // a snippet made again keeps its name: its start in the address keeps every cache honest
+      video.dataset.id=clip.id;video.dataset.to=to===undefined?'':String(to);video.dataset.size=size;video.dataset.small=s.root+clip.src+stamp;
       video.addEventListener('canplaythrough',()=>{   // how fast it really came: the next choice leans on it
         const seconds=(performance.now()-began)/1000;
         if(seconds>0.05){const seen=weightOf(clip,size)*8/1e6/seconds;s.mbps=s.mbps?s.mbps*0.6+seen*0.4:seen;}
       },{once:true,signal:off.signal});
-      video.src=s.root+(clip[size]??clip.src);video.load();
+      video.src=s.root+(clip[size]??clip.src)+stamp;video.load();
     };
     const change=(now=false)=>{
       const current=player(s.front),waiting=player(1-s.front);
-      if(gone||s.changing||!current||!waiting||waiting.readyState<3||!s.active)return false;
+      if(gone||s.changing||!current||!waiting||waiting.readyState<3||!s.active||(s.hold&&!now))return false;   // held: the clip in view waits, going round, for itself made again
       s.changing=true;waiting.currentTime=0;
       waiting.play().then(()=>{
         if(gone){s.changing=false;return;}
@@ -101,7 +104,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
       }).catch(()=>{s.changing=false;});
       return true;
     };
-    s.advance=change;
+    s.advance=(now?:boolean)=>{s.hold=null;return change(now);};
     // this clip, now: it loads in the player that waits and takes over the moment it can play. A later request wins over
     // an earlier one still loading, and one that arrives in the middle of a change waits for the change to end.
     const bring=(clip:Clip,to?:number,mine=++s.asked)=>{
@@ -119,6 +122,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
     // the arrows: right is the next clip (or the one after the clip gone back to), left the one before; pressed twice
     // before the first has landed, they count from where the first is heading
     s.step=(by:number)=>{
+      s.hold=null;
       const to=(s.aim??s.at)+by;
       if(by>0&&to>=s.seen.length){s.aim=null;s.asked++;change(true);return;}
       if(to<0)return;
@@ -126,17 +130,27 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
     };
     // the studio answers a mark, or a mark taken back, by making the clip's background again or putting it back: the list
     // says so when the clip is on it with its snippet starting where the studio said it would
+    // → the clip as listed; null when a minute passed without it; undefined when a later request about the same clip took
+    // over (a second nudge before the first was made): what happens next is that one's business
     const listed=async(id:string,at:number)=>{
       const mine=s.waits[id]=(s.waits[id]??0)+1;
-      for(let n=0;n<90&&!gone&&s.waits[id]===mine;n++){   // a background set aside is back in a second; one that has to be made again takes most of a minute
+      for(let n=0;n<90;n++){   // a background set aside is back in a second; one that has to be made again takes most of a minute
         const list=await fetch(s.root+'index.json',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<Listed>:null).catch(()=>null);
+        if(gone||s.waits[id]!==mine)return undefined;
         const clip=list?.clips?.find(entry=>entry.id===id);
-        if(clip&&Math.abs((clip.at??-1)-at)<0.002)return s.waits[id]===mine&&!gone?clip:null;
+        if(clip&&Math.abs((clip.at??-1)-at)<0.002)return clip;
         await new Promise(done=>window.setTimeout(done,700));
+        if(gone||s.waits[id]!==mine)return undefined;
       }
       return null;
     };
     const shuffleIn=(clip:Clip)=>{s.clips=[...s.clips.filter(entry=>entry.id!==clip.id),clip];s.queue=s.queue.filter(entry=>entry.id!==clip.id);};
+    // the clip, as the studio has it now, into view: in the place it holds when it is the one in view already (a nudge, a nudge taken back)
+    const again=(clip:Clip)=>{
+      shuffleIn(clip);s.seen=s.seen.map(entry=>entry.id===clip.id?clip:entry);
+      bring(clip,player(s.front)?.dataset.id===clip.id&&s.at>=0?s.at:undefined);
+    };
+    const span=(seconds:number)=>Math.abs(seconds-1)<0.05?'a second':`${seconds.toFixed(1)} s`;
     const watch=()=>{   // a little before the clip in view ends, the next takes over
       const current=player(s.front);
       if(current&&s.active&&!current.paused&&current.duration&&current.currentTime>=current.duration-0.12)change();
@@ -151,9 +165,27 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
         .then(answer=>{
           s.clips=s.clips.filter(clip=>clip.id!==id);s.queue=s.queue.filter(clip=>clip.id!==id);s.seen=s.seen.filter(clip=>clip.id!==id);s.at=Math.min(s.at,s.seen.length-1);s.aim=null;
           say(answer.shaky?'no good: nothing smooth is left of this clip, it is out · cmd-Z takes it back':'no good: the studio is making this background again from another stretch · cmd-Z takes it back');
-          s.asked++;change(true);
+          s.asked++;s.hold=null;change(true);
           if(!answer.shaky&&answer.at!=null)void listed(id,answer.at).then(clip=>{if(clip){shuffleIn(clip);s.queue.unshift(clip);}});   // made again: it returns to the shuffle, from its other stretch
         }).catch(()=>say('not marked: the studio\'s Video library did not answer'));
+    };
+    // n and , on a development machine: the clip in view is good but for its ending (n: a second earlier) or its beginning
+    // (, : a second later). It stays in view, going round, until the studio has made it again, then plays from its new start.
+    s.nudge=(by:number)=>{
+      const current=player(s.front),id=current?.dataset.id,way=by<0?'earlier':'later';
+      if(!local()||!id)return;
+      fetch(`${location.protocol}//${location.hostname}:3123/api/noplay`,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tid:id,nudge:by,from:'site'})})
+        .then(r=>r.ok?r.json() as Promise<Answer>:Promise.reject(new Error(String(r.status))))
+        .then(async answer=>{
+          if(!answer.ok||answer.at==null){say(answer.error==='no room'?`no room to take it ${way}: its clip ends there, or a stretch marked no good is in the way · m marks it no good`:'not nudged');return;}
+          const moved=span(Math.abs(answer.shown??1));
+          say(`${moved} ${way}: the studio is making it again`,0);s.hold=id;
+          const clip=await listed(id,answer.at);
+          if(clip===undefined)return;
+          if(!clip){if(s.hold===id)s.hold=null;say(`${moved} ${way} · still being made: it shows after a reload`);return;}
+          say(`${moved} ${way} · cmd-Z takes it back`);
+          if(s.hold===id){s.hold=null;again(clip);}else shuffleIn(clip);   // moved on meanwhile: it is in the shuffle as it is now
+        }).catch(()=>say('not nudged: the studio\'s Video library did not answer'));
     };
     // cmd-Z, on a development machine: the last mark is taken back, and the clip returns to the shuffle
     s.unmark=()=>{
@@ -164,10 +196,12 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
           if(!answer.ok){say('there is no mark to take back');return;}
           if(!answer.tid||answer.at==null){say('the last mark is taken back · another mark still keeps its clip out');return;}
           say('the last mark is taken back: its clip is coming back',0);
+          if(player(s.front)?.dataset.id===answer.tid)s.hold=answer.tid;   // a nudge taken back: the clip in view waits for itself as it was
           const clip=await listed(answer.tid,answer.at);   // the studio puts the background back as it was (or makes it again)
-          if(gone)return;
+          if(clip===undefined)return;
+          if(s.hold===answer.tid)s.hold=null;
           if(!clip){say('the last mark is taken back · its background is still being made: the clip is in the shuffle after a reload');return;}
-          shuffleIn(clip);say('the last mark is taken back');bring(clip);   // back in view: the arrows go on from it
+          say('the last mark is taken back');again(clip);   // back in view: the arrows go on from it
         }).catch(()=>say('not undone: the studio\'s Video library did not answer'));
     };
     const begin=async()=>{
@@ -231,6 +265,8 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
       if(command&&name==='z'&&!event.shiftKey){event.preventDefault();state.current.unmark();return;}
       if(command||event.altKey)return;
       if(name==='m')state.current.mark();
+      else if(name==='n')state.current.nudge(-1);
+      else if(name===',')state.current.nudge(1);
       else if(name==='arrowright'){event.preventDefault();state.current.step(1);}
       else if(name==='arrowleft'){event.preventDefault();state.current.step(-1);}
     };
