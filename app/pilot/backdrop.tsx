@@ -37,9 +37,10 @@ function shuffled<T>(list:T[]){
   return out;
 }
 
-// Two players take turns. The one in view plays its clip while the other loads the next; a little before the end the
-// next one starts, and only once it is moving does it dissolve in over the first, which keeps playing underneath:
-// no poster, no gap, no frozen frame, no dip to black. `skip` (the logo was clicked) brings the next clip at once.
+// Two players take turns. The one in view plays its clip while the other loads the next; just before the end the next
+// one starts, and the moment it is moving it takes the first one's place: a plain cut, no poster, no gap, no frozen
+// frame. `skip` (the logo was clicked) and the right arrow bring the next clip at once, the left arrow the one before;
+// on a development machine m marks the clip in view no good and cmd-Z takes the last mark back.
 export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;onShowing:(showing:boolean)=>void}) {
   const first=useRef<HTMLVideoElement>(null),second=useRef<HTMLVideoElement>(null);
   const [front,setFront]=useState(0);
@@ -47,7 +48,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
   const [showing,setShowing]=useState(false);
   const [started,setStarted]=useState(false);
   const [note,setNote]=useState('');
-  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],root:'',front:0,active:false,hevc:false,mbps:0,changing:false,advance:(now?:boolean):boolean=>Boolean(now)&&false,mark:()=>{}});
+  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],seen:[] as Clip[],at:-1,marked:[] as Clip[],root:'',front:0,active:false,hevc:false,mbps:0,changing:false,advance:(now?:boolean):boolean=>Boolean(now)&&false,step:(_by:number)=>{},mark:()=>{},unmark:()=>{}});
 
   useEffect(()=>{state.current.active=active;},[active]);
   useEffect(()=>{onShowing(showing);},[showing,onShowing]);
@@ -67,9 +68,10 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
       if(s.hevc&&clip.mid&&wide>1700&&fits('mid'))return 'mid';
       return 'src';
     };
-    const load=(video:HTMLVideoElement)=>{
-      const clip=next(),size=sizeFor(clip),began=performance.now();
-      video.dataset.id=clip.id;video.dataset.size=size;video.dataset.small=s.root+clip.src;
+    const byId=(id:string|undefined)=>s.clips.find(clip=>clip.id===id);
+    const load=(video:HTMLVideoElement,wanted?:Clip)=>{
+      const clip=wanted??next(),size=sizeFor(clip),began=performance.now();
+      video.dataset.id=clip.id;video.dataset.again=String(Boolean(wanted));video.dataset.size=size;video.dataset.small=s.root+clip.src;
       video.addEventListener('canplaythrough',()=>{   // how fast it really came: the next choice leans on it
         const seconds=(performance.now()-began)/1000;
         if(seconds>0.05){const seen=weightOf(clip,size)*8/1e6/seconds;s.mbps=s.mbps?s.mbps*0.6+seen*0.4:seen;}
@@ -82,15 +84,25 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
       s.changing=true;waiting.currentTime=0;
       waiting.play().then(()=>{
         if(gone)return;
-        const was=s.front;s.front=1-was;setLeaving(was);setFront(s.front);   // it moves: now it dissolves in over the other
-        setTimeout(()=>{if(gone)return;current.pause();setLeaving(-1);load(current);s.changing=false;},now?450:750);
+        const was=s.front;s.front=1-was;setLeaving(was);setFront(s.front);   // it moves: it takes the other's place, a plain cut
+        const shown=byId(waiting.dataset.id);
+        if(shown&&waiting.dataset.again!=='true'){s.seen=s.seen.slice(0,s.at+1);s.seen.push(shown);if(s.seen.length>60)s.seen.shift();s.at=s.seen.length-1;}   // what was seen, for the left arrow
+        setTimeout(()=>{if(gone)return;current.pause();setLeaving(-1);load(current);s.changing=false;},now?80:120);
       }).catch(()=>{s.changing=false;});
       return true;
     };
     s.advance=change;
+    // the arrows: right is the next clip (or the one after the clip gone back to), left the one before
+    s.step=(by:number)=>{
+      const to=s.at+by,waiting=player(1-s.front);
+      if(by>0&&to>=s.seen.length){change(true);return;}
+      if(to<0||!waiting||s.changing)return;
+      s.at=to;load(waiting,s.seen[to]);
+      waiting.addEventListener('canplay',()=>{change(true);},{once:true});
+    };
     const watch=()=>{   // a little before the clip in view ends, the next takes over
       const current=player(s.front);
-      if(current&&s.active&&!current.paused&&current.duration&&current.currentTime>=current.duration-0.75)change();
+      if(current&&s.active&&!current.paused&&current.duration&&current.currentTime>=current.duration-0.12)change();
       frame=requestAnimationFrame(watch);
     };
     // m, on a development machine: the clip in view is no good
@@ -100,10 +112,20 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
       fetch(`${location.protocol}//${location.hostname}:3123/api/noplay`,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tid:id,from:'site'})})
         .then(r=>r.ok?r.json() as Promise<{shaky?:boolean}>:Promise.reject(new Error(String(r.status))))
         .then(answer=>{
-          s.clips=s.clips.filter(clip=>clip.id!==id);s.queue=s.queue.filter(clip=>clip.id!==id);
+          const clip=byId(id);if(clip)s.marked.push(clip);
+          s.clips=s.clips.filter(clip=>clip.id!==id);s.queue=s.queue.filter(clip=>clip.id!==id);s.seen=s.seen.filter(clip=>clip.id!==id);s.at=Math.min(s.at,s.seen.length-1);
           setNote(answer.shaky?'no good: nothing smooth is left of this clip, it is out':'no good: the studio is making this background again from another stretch');
           change(true);
         }).catch(()=>setNote('not marked: the studio\'s Video library did not answer'));
+      setTimeout(()=>setNote(''),4200);
+    };
+    // cmd-Z, on a development machine: the last mark is taken back, and the clip returns to the shuffle
+    s.unmark=()=>{
+      if(!local())return;
+      fetch(`${location.protocol}//${location.hostname}:3123/api/noplay`,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({undo:true,from:'site'})})
+        .then(r=>r.ok?r.json() as Promise<{ok?:boolean}>:Promise.reject(new Error(String(r.status))))
+        .then(answer=>{const clip=s.marked.pop();if(answer.ok&&clip){s.clips.push(clip);s.queue.push(clip);}setNote(answer.ok?'the last mark is taken back':'there is no mark to take back');})
+        .catch(()=>setNote('not undone: the studio\'s Video library did not answer'));
       setTimeout(()=>setNote(''),4200);
     };
     const begin=async()=>{
@@ -122,7 +144,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
             if(video!==player(s.front))load(video);
           });
         }
-        a.addEventListener('playing',()=>setShowing(true),{once:true});
+        a.addEventListener('playing',()=>{setShowing(true);const shown=byId(a.dataset.id);if(shown&&s.at<0){s.seen=[shown];s.at=0;}},{once:true});
         load(a);load(b);setStarted(true);   // playing is the next effect's business: only while the opening screen is in view
         frame=requestAnimationFrame(watch);
       }catch{/* no backgrounds: the opening screen stays as it is */}
@@ -149,9 +171,13 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
 
   useEffect(()=>{
     const key=(event:KeyboardEvent)=>{
-      if(event.key.toLowerCase()!=='m'||event.metaKey||event.ctrlKey||event.altKey||!state.current.active)return;
-      if((event.target as HTMLElement|null)?.closest?.('input,textarea,select,[contenteditable=true]'))return;
-      state.current.mark();
+      if(!state.current.active||(event.target as HTMLElement|null)?.closest?.('input,textarea,select,[contenteditable=true]'))return;
+      const name=event.key.toLowerCase(),command=event.metaKey||event.ctrlKey;
+      if(command&&name==='z'&&!event.shiftKey){event.preventDefault();state.current.unmark();return;}
+      if(command||event.altKey)return;
+      if(name==='m')state.current.mark();
+      else if(name==='arrowright'){event.preventDefault();state.current.step(1);}
+      else if(name==='arrowleft'){event.preventDefault();state.current.step(-1);}
     };
     window.addEventListener('keydown',key);
     return()=>window.removeEventListener('keydown',key);
