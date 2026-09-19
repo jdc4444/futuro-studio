@@ -101,7 +101,12 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
         if(waiting.dataset.to)s.at=Number(waiting.dataset.to);   // an arrow through what was seen: only the place among them moves
         else if(shown){s.seen=s.seen.slice(0,s.at+1);s.seen.push(shown);if(s.seen.length>60)s.seen.shift();s.at=s.seen.length-1;}   // what was seen, for the left arrow
         setTimeout(()=>{s.changing=false;if(gone)return;current.pause();setLeaving(-1);load(current);},now?80:120);
-      }).catch(()=>{s.changing=false;});
+      }).catch(()=>{   // the next clip would not start (a browser saving power, a file gone): the one in view carries on, never a frozen frame
+        s.changing=false;
+        if(gone||!s.active||document.hidden||!current.paused)return;
+        if(now)current.currentTime=0;
+        current.play().catch(()=>{});
+      });
       return true;
     };
     s.advance=(now?:boolean)=>{s.hold=null;return change(now);};
@@ -245,11 +250,23 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
     return()=>{gone=true;off.abort();cancelAnimationFrame(frame);window.clearTimeout(noted);if(!idle)clearTimeout(timer);for(const video of [a,b]){if(video){video.pause();video.removeAttribute('src');video.load();}}};
   },[]);
 
-  // out of view (a project, About, Contact, another tab): the clip waits where it is
+  // out of view (a project, About, Contact, another tab): the clip waits where it is. Back home from a project, About or
+  // Contact it is not the tail of that clip that greets you but a fresh one, from its start (the next one is loaded
+  // and waiting; should it not be ready, the clip left behind starts over)
+  const away=useRef(false);
   useEffect(()=>{
     const video=(front?second:first).current;
     if(!video||!started)return;
-    const sync=()=>{if(active&&!document.hidden)video.play().catch(()=>{});else video.pause();};
+    const sync=()=>{
+      if(!active)away.current=true;
+      if(!active||document.hidden){video.pause();return;}
+      if(away.current){
+        away.current=false;
+        if(state.current.advance(true))return;   // the fresh clip plays itself in
+        video.currentTime=0;
+      }
+      video.play().catch(()=>{});
+    };
     sync();document.addEventListener('visibilitychange',sync);
     return()=>document.removeEventListener('visibilitychange',sync);
   },[active,front,started]);
