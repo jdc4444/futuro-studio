@@ -305,16 +305,22 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
       if(suspended||event.ctrlKey||!event.deltaY)return;
       interruptProjectScroll();
       const amount=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?scroller.clientHeight:1);
+      // The gate measures pace, so it wants the time the event happened, not
+      // the time a busy page got round to it (where the two clocks agree).
+      const handled=performance.now();
+      const now=Math.abs(handled-event.timeStamp)<1000?event.timeStamp:handled;
       if(travel.current==='home'||travel.current==='preview'){
-        const now=performance.now();
         // Track the whole momentum curve through the transition. Re-holding on
         // every event erased its peak and made gentle subsequent swipes stall.
         gesture.current.wheel(now,amount,true);
         event.preventDefault();return;
       }
-      if(gesture.current.wheel(performance.now(),amount)){event.preventDefault();return;}
+      if(gesture.current.wheel(now,amount)){event.preventDefault();return;}
       const index=expandedRef.current;
-      if(index===null){event.preventDefault();advance(amount>0?1:-1);return;}
+      if(index===null){
+        // A stray pixel is not a gesture; the step comes once it is under way.
+        event.preventDefault();if(gesture.current.underway)advance(amount>0?1:-1);return;
+      }
       event.preventDefault();
       scrollProject(amount,event.deltaMode===0?55:90);
     };

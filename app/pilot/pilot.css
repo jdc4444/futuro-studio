@@ -1,3 +1,6 @@
+/* The page itself never scrolls: .pilot-scroll is the only scroller. Left unlocked, a phone can take the same swipe for
+   its own page movement (the rubber band, the toolbar) on top of the scroller's. */
+html:has(.futuro-pilot),html:has(.futuro-pilot) body{height:100%;overflow:hidden;overscroll-behavior:none}
 .futuro-pilot{height:100svh;overflow:hidden;position:relative}
 .futuro-pilot .pilot-scroll{position:relative;height:100svh;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:none;overflow-anchor:none;scroll-snap-type:none;scroll-behavior:auto;scrollbar-width:none;outline:none}
 .pilot-scroll::-webkit-scrollbar{display:none}
