@@ -262,7 +262,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
     const key=(event:KeyboardEvent)=>{
       if(!state.current.active||(event.target as HTMLElement|null)?.closest?.('input,textarea,select,[contenteditable=true]'))return;
       const name=event.key.toLowerCase(),command=event.metaKey||event.ctrlKey;
-      if(command&&name==='z'&&!event.shiftKey){event.preventDefault();state.current.unmark();return;}
+      if(command&&name==='z'&&!event.shiftKey){if(local()){event.preventDefault();state.current.unmark();}return;}   // the published site leaves cmd-Z to the browser
       if(command||event.altKey)return;
       if(name==='m')state.current.mark();
       else if(name==='n')state.current.nudge(-1);
