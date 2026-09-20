@@ -78,7 +78,7 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
   const wheelAnimation=useRef(0);
   const wheelTarget=useRef<number|null>(null);
   const wheelTiming=useRef({last:0,response:55});
-  const travel=useRef<'preview'|'project'|'home'|null>(null);
+  const travel=useRef<'preview'|'project'|'home'|'leave'|null>(null);
   const handledHomeRequest=useRef(homeRequest);
   const refresh=useRef(()=>{});
   const last=selectedProjects.length-1;
@@ -104,7 +104,7 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
     return anchoredScroll(scroller.scrollTop,scroller.getBoundingClientRect().top,element.getBoundingClientRect().top);
   }
 
-  function scrollToElement(element:HTMLElement,kind:'preview'|'project'|'home',smooth=true,complete?:()=>void){
+  function scrollToElement(element:HTMLElement,kind:'preview'|'project'|'home'|'leave',smooth=true,complete?:()=>void){
     const scroller=scrollRoot.current;
     if(!scroller)return;
     cancelScroll();
@@ -118,7 +118,7 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
     }
     travel.current=kind;
     const distance=Math.abs(elementTop(element)-start)/scroller.clientHeight;
-    const duration=kind==='preview'?580:Math.min(kind==='home'?1400:1000,Math.max(520,680+Math.log2(Math.max(.25,distance))*120));
+    const duration=kind==='preview'||kind==='leave'?580:Math.min(kind==='home'?1400:1000,Math.max(520,680+Math.log2(Math.max(.25,distance))*120));
     const began=performance.now();
     const step=(now:number)=>{
       const progress=Math.min(1,(now-began)/duration);
@@ -161,15 +161,33 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
     scrollToPreview(next>last?-1:next,next>last);
   }
 
-  function resetToPreview(index:number){
+  function resetToPreview(index:number,preserveMomentum=false){
     cancelScroll();
-    gesture.current.hold(performance.now());
+    gesture.current.hold(performance.now(),preserveMomentum);
     if(touch.current)touch.current.consumed=true;
     selectPreview(index);
     onIntroChange(index===-1);onFootageChange(index!==-1);
     pendingAnchor.current={index,enter:false};
     expandedRef.current=null;
     setExpanded(null);
+  }
+
+  // An open project is a page: a swipe scrolls it and comes to rest on its last screen, however much momentum is
+  // left (the pages are one to three screens long, less than one good swipe). Going on to the next project takes a
+  // gesture of its own from there, and is one step, like between previews.
+  function projectRest(index:number){
+    const scroller=scrollRoot.current,card=cards.current[index];
+    if(!scroller||!card)return null;
+    const top=elementTop(card);
+    return {top,rest:Math.max(top,top+card.offsetHeight-scroller.clientHeight)};
+  }
+
+  function leaveProject(index:number){
+    const next=index===last?-1:index+1,card=next===-1?end.current:cards.current[next];
+    gesture.current.hold();
+    if(touch.current)touch.current.consumed=true;
+    if(!card){resetToPreview(next);return;}
+    scrollToElement(card,'leave',true,()=>resetToPreview(next,true));
   }
 
   function returnToPreview(){
@@ -228,13 +246,16 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
     if(!scroller||index===null)return;
     const card=cards.current[index];
     if(!card)return;
-    const top=elementTop(card),bottom=top+card.offsetHeight;
+    const top=elementTop(card),bottom=top+card.offsetHeight,rest=Math.max(top,bottom-scroller.clientHeight);
     const current=scroller.scrollTop;
     const remaining=(wheelTarget.current??current)-current;
     // Reverse immediately when the user changes direction, without dragging
     // along the remaining movement from the previous gesture.
     const base=remaining*amount<0?current:wheelTarget.current??current;
-    wheelTarget.current=Math.max(top,Math.min(bottom,base+amount));
+    // The last screen is where a gesture ends. What is left of it is not the
+    // gesture that goes on to the next project: the gate holds it.
+    if(amount>0&&base+amount>rest)gesture.current.hold(undefined,true);   // as of the wheel event that brought us here
+    wheelTarget.current=Math.max(top,Math.min(rest,base+amount));
     wheelTiming.current.response=response;
     const apply=(next:number,edgeTop:number,edgeBottom:number)=>{
       scroller.scrollTop=next;
@@ -250,7 +271,7 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
     const step=(now:number)=>{
       if(expandedRef.current!==index||wheelTarget.current===null){cancelWheelScroll();return;}
       const edgeTop=elementTop(card),edgeBottom=edgeTop+card.offsetHeight;
-      const target=Math.max(edgeTop,Math.min(edgeBottom,wheelTarget.current));
+      const target=Math.max(edgeTop,Math.min(Math.max(edgeTop,edgeBottom-scroller.clientHeight),wheelTarget.current));
       const elapsed=Math.min(64,Math.max(1,now-wheelTiming.current.last));
       wheelTiming.current.last=now;
       const next=scroller.scrollTop+(target-scroller.scrollTop)*(1-Math.exp(-elapsed/wheelTiming.current.response));
@@ -275,7 +296,7 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
       if(index!==null){
         onIntroChange(false);onFootageChange(false);
         const card=cards.current[index];
-        if(!card||travel.current==='project'||travel.current==='home')return;
+        if(!card||travel.current==='project'||travel.current==='home'||travel.current==='leave')return;
         const bounds=card.getBoundingClientRect();
         const top=bounds.top-scroller.getBoundingClientRect().top;
         const exit=projectExit(top,top+bounds.height,delta);
@@ -309,7 +330,7 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
       // the time a busy page got round to it (where the two clocks agree).
       const handled=performance.now();
       const now=Math.abs(handled-event.timeStamp)<1000?event.timeStamp:handled;
-      if(travel.current==='home'||travel.current==='preview'){
+      if(travel.current==='home'||travel.current==='preview'||travel.current==='leave'){
         // Track the whole momentum curve through the transition. Re-holding on
         // every event erased its peak and made gentle subsequent swipes stall.
         gesture.current.wheel(now,amount,true);
@@ -322,16 +343,22 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
         event.preventDefault();if(gesture.current.underway)advance(amount>0?1:-1);return;
       }
       event.preventDefault();
+      // On the project's last screen a new gesture downwards goes on to the next project.
+      const edge=projectRest(index);
+      if(edge&&amount>0&&(wheelTarget.current??scroller.scrollTop)>=edge.rest-.5){
+        if(gesture.current.underway)leaveProject(index);
+        return;
+      }
       scrollProject(amount,event.deltaMode===0?55:90);
     };
     const onTouchStart=(event:TouchEvent)=>{
       if(suspended||event.touches.length!==1)return;
-      if(travel.current==='home'||travel.current==='preview')return;
+      if(travel.current==='home'||travel.current==='preview'||travel.current==='leave')return;
       interruptProjectScroll();cancelWheelScroll();gesture.current.release();
       touch.current={startY:event.touches[0].clientY,consumed:false};
     };
     const onTouchMove=(event:TouchEvent)=>{
-      if(!suspended&&(travel.current==='home'||travel.current==='preview')){event.preventDefault();return;}
+      if(!suspended&&(travel.current==='home'||travel.current==='preview'||travel.current==='leave')){event.preventDefault();return;}
       if(suspended||event.touches.length!==1||!touch.current||expandedRef.current!==null)return;
       event.preventDefault();
       const distance=touch.current.startY-event.touches[0].clientY;
@@ -347,7 +374,7 @@ export function PilotProjects({suspended=false,homeRequest=0,onIntroChange,onFoo
       if(event.key===' '&&target.closest('button,a'))return;
       const direction=['ArrowDown','PageDown'].includes(event.key)||(event.key===' '&&!event.shiftKey)?1:
         ['ArrowUp','PageUp'].includes(event.key)||(event.key===' '&&event.shiftKey)?-1:0;
-      if(travel.current==='home'||travel.current==='preview'){
+      if(travel.current==='home'||travel.current==='preview'||travel.current==='leave'){
         if(direction||event.key==='Home'||event.key==='End')event.preventDefault();
         return;
       }
