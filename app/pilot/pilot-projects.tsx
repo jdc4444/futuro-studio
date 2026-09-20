@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect,useLayoutEffect,useRef,useState,type CSSProperties,type RefObject} from 'react';
+import {playWhenAllowed} from './autoplay';
 import {ResumeEntries} from '../resume-entries';
 import {selectedProjects,type SelectedProject} from '../resume-selection';
 import {anchoredScroll,createScrollGestureGate,projectExit} from './pilot-navigation';
@@ -22,7 +23,7 @@ function Preview({project,scrollRoot,onOpen}:{
         film.src=project.media.src;film.load();
       }
       if(visible&&!reduced.matches&&!document.hidden){
-        film.muted=true;film.play().catch(()=>{});
+        film.muted=true;playWhenAllowed(film,()=>visible&&!reduced.matches&&!document.hidden);   // refused (a phone saving power): the first touch starts it
       }else film.pause();
     };
     const preload=new IntersectionObserver(([entry])=>{

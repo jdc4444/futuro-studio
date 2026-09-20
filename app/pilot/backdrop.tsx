@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect,useRef,useState} from 'react';
+import {playWhenAllowed} from './autoplay';
 
 // The opening screen's video backgrounds: five second clips with their look baked in, made in the studio from
 // the macro board's pool (studio/tiles/scripts/publish_backgrounds.py) and published apart from this site, so
@@ -53,7 +54,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
   const [showing,setShowing]=useState(false);
   const [started,setStarted]=useState(false);
   const [note,setNote]=useState('');
-  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],seen:[] as Clip[],at:-1,aim:null as number|null,asked:0,waits:{} as Record<string,number>,hold:null as string|null,root:'',front:0,active:false,hevc:false,mbps:0,changing:false,advance:(now?:boolean):boolean=>Boolean(now)&&false,step:(_by:number)=>{},mark:()=>{},nudge:(_by:number)=>{},unmark:()=>{}});
+  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],seen:[] as Clip[],at:-1,aim:null as number|null,asked:0,waits:{} as Record<string,number>,hold:null as string|null,lazy:false,root:'',front:0,active:false,hevc:false,mbps:0,changing:false,advance:(now?:boolean):boolean=>Boolean(now)&&false,step:(_by:number)=>{},mark:()=>{},nudge:(_by:number)=>{},unmark:()=>{}});
 
   useEffect(()=>{state.current.active=active;},[active]);
   useEffect(()=>{onShowing(showing);},[showing,onShowing]);
@@ -64,7 +65,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
     if(matchMedia('(prefers-reduced-motion: reduce)').matches||connection?.saveData)return;
     // a fresh start, every time this mounts: a hot reload during development keeps the object of the version before it,
     // which may lack what this one counts with, or be left in the middle of a change that will never finish
-    Object.assign(s,{queue:[],seen:[],at:-1,aim:null,asked:0,waits:{},hold:null,changing:false});
+    Object.assign(s,{queue:[],seen:[],at:-1,aim:null,asked:0,waits:{},hold:null,lazy:false,changing:false});
     let gone=false,frame=0,noted=0;
     const off=new AbortController();   // what this mount listens to on the two players stops with it (they outlive a hot reload)
     const say=(text:string,ms=4200)=>{window.clearTimeout(noted);setNote(text);if(text&&ms)noted=window.setTimeout(()=>setNote(''),ms);};
@@ -92,9 +93,12 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
     };
     const change=(now=false)=>{
       const current=player(s.front),waiting=player(1-s.front);
-      if(gone||s.changing||!current||!waiting||waiting.readyState<3||!s.active||(s.hold&&!now))return false;   // held: the clip in view waits, going round, for itself made again
-      s.changing=true;waiting.currentTime=0;
+      if(gone||s.changing||!current||!waiting||!waiting.dataset.id||waiting.error||waiting.readyState<(s.lazy?0:3)||!s.active||(s.hold&&!now))return false;   // held: the clip in view waits, going round, for itself made again
+      s.changing=true;
+      if(waiting.readyState)waiting.currentTime=0;
+      const stuck=window.setTimeout(()=>{s.changing=false;},6000);   // a start that never settles does not block the ones after it
       waiting.play().then(()=>{
+        window.clearTimeout(stuck);
         if(gone){s.changing=false;return;}
         const was=s.front;s.front=1-was;setLeaving(was);setFront(s.front);   // it moves: it takes the other's place, a plain cut
         const shown=byId(waiting.dataset.id);s.aim=null;
@@ -102,7 +106,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
         else if(shown){s.seen=s.seen.slice(0,s.at+1);s.seen.push(shown);if(s.seen.length>60)s.seen.shift();s.at=s.seen.length-1;}   // what was seen, for the left arrow
         setTimeout(()=>{s.changing=false;if(gone)return;current.pause();setLeaving(-1);load(current);},now?80:120);
       }).catch(()=>{   // the next clip would not start (a browser saving power, a file gone): the one in view carries on, never a frozen frame
-        s.changing=false;
+        window.clearTimeout(stuck);s.changing=false;
         if(gone||!s.active||document.hidden||!current.paused)return;
         if(now)current.currentTime=0;
         current.play().catch(()=>{});
@@ -158,7 +162,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
     const span=(seconds:number)=>Math.abs(seconds-1)<0.05?'a second':`${seconds.toFixed(1)} s`;
     const watch=()=>{   // a little before the clip in view ends, the next takes over
       const current=player(s.front);
-      if(current&&s.active&&!current.paused&&current.duration&&current.currentTime>=current.duration-0.12)change();
+      if(current&&s.active&&!current.paused&&current.duration&&current.currentTime>=current.duration-(s.lazy?1.4:0.12))change();   // lazy: the next clip only loads once it is told to play, so it is told early; the cut still waits for it to move
       frame=requestAnimationFrame(watch);
     };
     // m, on a development machine: the clip in view is no good
@@ -219,7 +223,13 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
         const [a,b]=[player(0),player(1)];
         if(gone||!a||!b)return;
         for(const video of [a,b]){
-          video.addEventListener('ended',()=>{if(video===player(s.front)&&!change()){video.currentTime=0;video.play().catch(()=>{});}},{signal:off.signal});   // the next is not ready: once more
+          video.muted=true;video.defaultMuted=true;video.setAttribute('muted','');video.setAttribute('playsinline','');   // what a phone asks of a video that starts by itself
+          video.addEventListener('ended',()=>{
+            if(video!==player(s.front)||change())return;
+            const next=player(1-s.front);
+            if(next&&!next.error&&next.readyState<3&&!s.changing)s.lazy=true;   // a whole clip went by and the next never loaded: this browser loads only what plays (phones)
+            video.currentTime=0;video.play().catch(()=>{});
+          },{signal:off.signal});   // the next is not ready: once more
           video.addEventListener('error',()=>{
             const small=video.dataset.small,failed=video.currentSrc||video.src;
             if(video.dataset.size!=='src'&&small){
@@ -265,7 +275,8 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
         if(state.current.advance(true))return;   // the fresh clip plays itself in
         video.currentTime=0;
       }
-      video.play().catch(()=>{});
+      // a phone saving power refuses even this: then the first touch starts it, and clears the other player for later
+      playWhenAllowed(video,()=>state.current.active&&!document.hidden&&video.dataset.on==='true',()=>[first.current,second.current].filter((player):player is HTMLVideoElement=>Boolean(player)));
     };
     sync();document.addEventListener('visibilitychange',sync);
     return()=>document.removeEventListener('visibilitychange',sync);
