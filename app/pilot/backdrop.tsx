@@ -292,9 +292,9 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
     return()=>{gone=true;off.abort();cancelAnimationFrame(frame);window.clearTimeout(noted);if(!idle)clearTimeout(timer);for(const video of [a,b]){if(video){video.pause();video.removeAttribute('src');video.load();}}};
   },[]);
 
-  // out of view (a project, About, Contact, another tab): the clip waits where it is. Back home from a project, About or
-  // Contact it is not the tail of that clip that greets you but a fresh one, from its start (the next one is loaded
-  // and waiting; should it not be ready, the clip left behind starts over)
+  // out of view (a project, or another tab): the clip waits where it is. About and Contact leave it playing behind them, so
+  // going there and back is seamless. Back home from a project it is not the tail of that clip that greets you but a fresh one,
+  // from its start (the next one is loaded and waiting; should it not be ready, the clip left behind starts over)
   const away=useRef(false);
   useEffect(()=>{
     const video=(front?second:first).current;
