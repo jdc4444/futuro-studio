@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 const ownerEmail = "josdiazcontreras@gmail.com";
 const maxMutations = 50;
+const maxReadRecords = 5000;
 const tokenPattern = /^[a-z0-9][a-z0-9_-]{0,79}$/i;
 
 type Mutation = { source: string; entityType: string; entityId: string; field: string; value: unknown };
@@ -50,7 +51,7 @@ export async function GET(request: Request) {
   if (actor.device && source !== "tiles") return Response.json({ error: "This device may only read Tiles state." }, { status: 403 });
 
   try {
-    const rows = await database().prepare("SELECT source, entity_type AS entityType, entity_id AS entityId, field, value_json AS valueJson, revision, updated_at AS updatedAt FROM studio_state WHERE source = ? AND updated_at > ? ORDER BY updated_at ASC LIMIT 500").bind(source, since).all();
+    const rows = await database().prepare("SELECT source, entity_type AS entityType, entity_id AS entityId, field, value_json AS valueJson, revision, updated_at AS updatedAt FROM studio_state WHERE source = ? AND updated_at > ? ORDER BY updated_at ASC LIMIT ?").bind(source, since, maxReadRecords).all();
     const state = rows.results.map((row) => ({ ...row, value: JSON.parse(String(row.valueJson)) }));
     return Response.json({ state, serverTime: Date.now() });
   } catch (error) {
