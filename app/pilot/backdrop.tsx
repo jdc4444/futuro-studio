@@ -21,8 +21,9 @@ const base=()=>local()?`${location.protocol}//${location.hostname}:3124/`:PUBLIS
 // is asked for follows the browser (does it play HEVC smoothly), the screen (is it wide enough to show the difference)
 // and the connection: what the browser says of it at first, then how fast the clips before really arrived.
 type Size='src'|'mid'|'big';
-type Clip={id:string;src:string;mid?:string;big?:string;bytes?:number;mid_bytes?:number;big_bytes?:number;at?:number};   // at: where in its clip the snippet starts
-type Answer={ok?:boolean;error?:string;shaky?:boolean;tid?:string;at?:number|null;shown?:number};   // the studio, to a mark, a nudge, or a mark taken back
+type Clip={id:string;src:string;mid?:string;big?:string;bytes?:number;mid_bytes?:number;big_bytes?:number;at?:number;ev?:number};   // at: where in its clip the snippet starts; ev: its exposure in half stops (baked in)
+type Answer={ok?:boolean;error?:string;shaky?:boolean;tid?:string;at?:number|null;shown?:number;exposure?:number};   // the studio, to a mark, a nudge, a mark taken back, or an exposure change
+const evText=(e:number)=>{if(!e)return '0';const a=Math.abs(e),w=Math.floor(a);return (e>0?'+':'−')+(a%1?(w||'')+'½':String(w));};   // half stops, as the macro board writes them
 type Listed={clips?:Clip[];big_codec?:string};
 const WEIGHT:Record<Size,number>={src:0.9e6,mid:1.0e6,big:1.5e6};   // bytes, when the list does not say
 const weightOf=(clip:Clip,size:Size)=>(size==='src'?clip.bytes:size==='mid'?clip.mid_bytes:clip.big_bytes)??WEIGHT[size];
@@ -54,7 +55,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
   const [showing,setShowing]=useState(false);
   const [started,setStarted]=useState(false);
   const [note,setNote]=useState('');
-  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],seen:[] as Clip[],at:-1,aim:null as number|null,asked:0,waits:{} as Record<string,number>,hold:null as string|null,lazy:false,root:'',front:0,active:false,hevc:false,mbps:0,changing:false,advance:(now?:boolean):boolean=>Boolean(now)&&false,step:(_by:number)=>{},mark:()=>{},nudge:(_by:number)=>{},unmark:()=>{}});
+  const state=useRef({clips:[] as Clip[],queue:[] as Clip[],seen:[] as Clip[],at:-1,aim:null as number|null,asked:0,waits:{} as Record<string,number>,hold:null as string|null,lazy:false,root:'',front:0,active:false,hevc:false,mbps:0,changing:false,advance:(now?:boolean):boolean=>Boolean(now)&&false,step:(_by:number)=>{},mark:()=>{},nudge:(_by:number)=>{},expose:(_by:number)=>{},unmark:()=>{}});
 
   useEffect(()=>{state.current.active=active;},[active]);
   useEffect(()=>{onShowing(showing);},[showing,onShowing]);
@@ -83,7 +84,7 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
     // `to`: the clip is one already seen, asked for with an arrow, and this its place among them
     const load=(video:HTMLVideoElement,wanted?:Clip,to?:number)=>{
       const clip=wanted??next(),size=sizeFor(clip),began=performance.now();
-      const stamp=clip.at===undefined?'':`?at=${clip.at}`;   // a snippet made again keeps its name: its start in the address keeps every cache honest
+      const stamp=clip.at===undefined?'':`?at=${clip.at}&ev=${clip.ev??0}`;   // a snippet made again keeps its name: its start and exposure in the address keep every cache honest (a re-bake with a new exposure is a fresh URL)
       video.dataset.id=clip.id;video.dataset.to=to===undefined?'':String(to);video.dataset.size=size;video.dataset.small=s.root+clip.src+stamp;
       video.addEventListener('canplaythrough',()=>{   // how fast it really came: the next choice leans on it
         const seconds=(performance.now()-began)/1000;
@@ -196,6 +197,37 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
           if(s.hold===id){s.hold=null;again(clip);}else shuffleIn(clip);   // moved on meanwhile: it is in the shuffle as it is now
         }).catch(()=>say('not nudged: the studio\'s Video library did not answer'));
     };
+    // like listed(), but it waits for the clip to be listed with the exposure asked for (its start does not change, its pixels do)
+    const listedEv=async(id:string,ev:number)=>{
+      const mine=s.waits[id]=(s.waits[id]??0)+1;
+      for(let n=0;n<90;n++){
+        const list=await fetch(s.root+'index.json',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<Listed>:null).catch(()=>null);
+        if(gone||s.waits[id]!==mine)return undefined;
+        const clip=list?.clips?.find(entry=>entry.id===id);
+        if(clip&&Math.abs((clip.ev??0)-ev)<0.01)return clip;
+        await new Promise(done=>window.setTimeout(done,700));
+        if(gone||s.waits[id]!==mine)return undefined;
+      }
+      return null;
+    };
+    // b and . on a development machine: the clip in view a half stop darker (b) or brighter (.), an offset before the look, the
+    // same the macro board shows it with. It stays in view until the studio has baked the new exposure in, then shows it.
+    s.expose=(by:number)=>{
+      const current=player(s.front),id=current?.dataset.id;
+      if(!local()||!id)return;
+      fetch(`${location.protocol}//${location.hostname}:3123/api/expose`,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({tid:id,by})})
+        .then(r=>r.ok?r.json() as Promise<Answer>:Promise.reject(new Error(String(r.status))))
+        .then(async answer=>{
+          if(!answer.ok){say('exposure not changed');return;}
+          const label=evText(answer.exposure??0);
+          say(`exposure ${label}: the studio is baking it in`,0);s.hold=id;
+          const clip=await listedEv(id,answer.exposure??0);
+          if(clip===undefined)return;
+          if(!clip){if(s.hold===id)s.hold=null;say(`exposure ${label} · still being baked: it shows after a reload`);return;}
+          say(`exposure ${label} · b darker · . brighter`);
+          if(s.hold===id){s.hold=null;again(clip);}else shuffleIn(clip);   // moved on meanwhile: it is in the shuffle as it is now
+        }).catch(()=>say('exposure not changed: the studio\'s Video library did not answer'));
+    };
     // cmd-Z, on a development machine: the last mark is taken back, and the clip returns to the shuffle
     s.unmark=()=>{
       if(!local())return;
@@ -295,6 +327,8 @@ export function Backdrop({active,skip=0,onShowing}:{active:boolean;skip?:number;
       if(name==='m')state.current.mark();
       else if(name==='n')state.current.nudge(-1);
       else if(name===',')state.current.nudge(1);
+      else if(name==='b')state.current.expose(-0.5);
+      else if(name==='.')state.current.expose(0.5);
       else if(name==='arrowright'){event.preventDefault();state.current.step(1);}
       else if(name==='arrowleft'){event.preventDefault();state.current.step(-1);}
     };
