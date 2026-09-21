@@ -9,19 +9,20 @@ const tokenPattern = /^[a-z0-9][a-z0-9_-]{0,79}$/i;
 
 type Mutation = { source: string; entityType: string; entityId: string; field: string; value: unknown };
 
-type Actor = { id: string; device: boolean };
+type Actor = { id: string; deviceSource?: string };
 
 function requireActor(request: Request): Actor | null {
   const userId = request.headers.get("oai-authenticated-user-id");
   const email = request.headers.get("oai-authenticated-user-email")?.toLowerCase();
-  if (userId && email === ownerEmail) return { id: userId, device: false };
+  if (userId && email === ownerEmail) return { id: userId };
 
-  // Local Studio tools never receive the platform session headers. They use a
+  // Local Studio tools never receive the platform session headers. Each uses a
   // separate, server-side-only secret so the browser itself never gets a token.
-  // Keep this constrained to Tiles until each other local tool has its own key.
   const deviceToken = request.headers.get("x-studio-device-token");
-  const configuredToken = (env as unknown as { STUDIO_TILES_DEVICE_TOKEN?: string }).STUDIO_TILES_DEVICE_TOKEN;
-  if (configuredToken && deviceToken === configuredToken) return { id: "device:tiles", device: true };
+  const configured = env as unknown as { STUDIO_TILES_DEVICE_TOKEN?: string; STUDIO_LOOKBOOK_DEVICE_TOKEN?: string };
+  const devices = [["tiles", configured.STUDIO_TILES_DEVICE_TOKEN], ["lookbook", configured.STUDIO_LOOKBOOK_DEVICE_TOKEN]] as const;
+  const match = devices.find(([, token]) => token && deviceToken === token);
+  if (match) return { id: `device:${match[0]}`, deviceSource: match[0] };
   return null;
 }
 
@@ -48,7 +49,7 @@ export async function GET(request: Request) {
   const source = url.searchParams.get("source");
   const since = Number(url.searchParams.get("since") ?? "0");
   if (!source || !validToken(source) || !Number.isFinite(since) || since < 0) return Response.json({ error: "source and a valid since value are required." }, { status: 400 });
-  if (actor.device && source !== "tiles") return Response.json({ error: "This device may only read Tiles state." }, { status: 403 });
+  if (actor.deviceSource && source !== actor.deviceSource) return Response.json({ error: "This device may only read its own source state." }, { status: 403 });
 
   try {
     const rows = await database().prepare("SELECT source, entity_type AS entityType, entity_id AS entityId, field, value_json AS valueJson, revision, updated_at AS updatedAt FROM studio_state WHERE source = ? AND updated_at > ? ORDER BY updated_at ASC LIMIT ?").bind(source, since, maxReadRecords).all();
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
   let body: { operationId?: unknown; mutations?: unknown };
   try { body = await request.json(); } catch { return Response.json({ error: "JSON body required." }, { status: 400 }); }
   if (!validToken(body.operationId) || !Array.isArray(body.mutations) || body.mutations.length === 0 || body.mutations.length > maxMutations || !body.mutations.every(validMutation)) return Response.json({ error: "A valid operationId and up to 50 mutations are required." }, { status: 400 });
-  if (actor.device && !body.mutations.every((mutation) => mutation.source === "tiles")) return Response.json({ error: "This device may only write Tiles state." }, { status: 403 });
+  if (actor.deviceSource && !body.mutations.every((mutation) => mutation.source === actor.deviceSource)) return Response.json({ error: "This device may only write its own source state." }, { status: 403 });
 
   const now = Date.now();
   try {
