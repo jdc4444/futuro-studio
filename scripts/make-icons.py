@@ -11,8 +11,11 @@ and three, the home-screen icon the whole stack and a swarm.
                                            and the plain names crawlers ask for (favicon.ico, favicon.svg, favicon-32.png, apple-touch-icon.png)
 Needs rsvg-convert (brew install librsvg). The wordmark icons before this one stay as futuro-icon-v2* and *-wordmark*."""
 import os, struct, subprocess, tempfile
+from fontTools.pens.svgPathPen import SVGPathPen
+from fontTools.ttLib import TTFont
 
 PUBLIC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public")
+DOT_FONT = os.path.join(PUBLIC, "fonts", "reference-3.ttf")
 
 # the study's wing outlines, y turned over for SVG (there: fore.moveTo(.008,.05) … hind.closePath()); one side, the other is its mirror
 FORE = "M.008-.05C.085-.18 .19-.33 .265-.285C.345-.245 .325-.10 .245-.055C.15-.005 .045.025 .01-.015Z"
@@ -68,13 +71,26 @@ def logo_icon(px):
     Those remain a separate v3 exploration; the canonical mark is simply the
     all-caps wordmark on the black field.
     """
-    c = px / 2
-    # Rasterise each size independently, so PNG/ICO fallbacks preserve the
-    # wordmark without the browser needing a locally-installed typeface.
-    font = max(3.8, px * .178)
-    word = (f'<text x="{c}" y="{px * .565:.3f}" text-anchor="middle" fill="#fff" '
-            f'font-family="Raleway, sans-serif" font-size="{font:.3f}" font-weight="700" '
-            f'letter-spacing="{max(.25, px * .018):.3f}">FUTURO</text>')
+    # Convert the actual site font into SVG paths.  librsvg cannot reliably
+    # load a font that lives inside the app, and a fallback would turn this
+    # mark into ordinary Raleway. Paths keep the dotted Raleway geometry in
+    # every PNG, ICO, and standalone SVG.
+    font = TTFont(DOT_FONT)
+    glyphs = font.getGlyphSet(); cmap = font.getBestCmap(); upem = font["head"].unitsPerEm
+    letters = "FUTURO"; tracking = upem * .055
+    advances = [font["hmtx"][cmap[ord(letter)]][0] for letter in letters]
+    total = sum(advances) + tracking * (len(letters) - 1)
+    scale = (px * .78) / total
+    x = (px - total * scale) / 2
+    baseline = px * .57
+    paths = []
+    for index, letter in enumerate(letters):
+        glyph_name = cmap[ord(letter)]
+        pen = SVGPathPen(glyphs)
+        glyphs[glyph_name].draw(pen)
+        paths.append(f'<path d="{pen.getCommands()}" transform="translate({x:.4f} {baseline:.4f}) scale({scale:.7f} {-scale:.7f})"/>')
+        x += (advances[index] + tracking) * scale
+    word = "<g fill=\"#fff\">" + "".join(paths) + "</g>"
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{px}" height="{px}" viewBox="0 0 {px} {px}">'
             f'<rect width="{px}" height="{px}" rx="{px * .2:.3f}" fill="#000"/>{word}</svg>')
 
@@ -108,10 +124,10 @@ def main():
     # remains available but is intentionally not used as the favicon.
     brand = {}
     for px in (16, 32, 48, 180):
-        brand[px] = os.path.join(PUBLIC, f"futuro-logo-v1-{px}.png")
+        brand[px] = os.path.join(PUBLIC, f"futuro-logo-v2-{px}.png")
         png(logo_icon(px), px, brand[px])
-    ico([(px, brand[px]) for px in (16, 32, 48)], os.path.join(PUBLIC, "futuro-logo-v1.ico"))
-    open(os.path.join(PUBLIC, "futuro-logo-v1.svg"), "w").write(logo_icon(32))
+    ico([(px, brand[px]) for px in (16, 32, 48)], os.path.join(PUBLIC, "futuro-logo-v2.ico"))
+    open(os.path.join(PUBLIC, "futuro-logo-v2.svg"), "w").write(logo_icon(32))
     ico([(px, brand[px]) for px in (16, 32, 48)], os.path.join(PUBLIC, "favicon.ico"))
     open(os.path.join(PUBLIC, "favicon.svg"), "w").write(logo_icon(32))
     for name, px in (("favicon-32.png", 32), ("apple-touch-icon.png", 180)):
