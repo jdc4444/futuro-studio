@@ -61,6 +61,24 @@ def icon(px):
     return f'<svg xmlns="http://www.w3.org/2000/svg" width="{px}" height="{px}" viewBox="0 0 {px} {px}">{field}{art}</svg>'
 
 
+def logo_icon(px):
+    """The clean FUTURO wordmark in the opening screen's proportions.
+
+    A favicon is too small for the butterfly/square study to remain legible.
+    Those remain a separate v3 exploration; the canonical mark is simply the
+    all-caps wordmark on the black field.
+    """
+    c = px / 2
+    # Rasterise each size independently, so PNG/ICO fallbacks preserve the
+    # wordmark without the browser needing a locally-installed typeface.
+    font = max(3.8, px * .178)
+    word = (f'<text x="{c}" y="{px * .565:.3f}" text-anchor="middle" fill="#fff" '
+            f'font-family="Raleway, sans-serif" font-size="{font:.3f}" font-weight="700" '
+            f'letter-spacing="{max(.25, px * .018):.3f}">FUTURO</text>')
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{px}" height="{px}" viewBox="0 0 {px} {px}">'
+            f'<rect width="{px}" height="{px}" rx="{px * .2:.3f}" fill="#000"/>{word}</svg>')
+
+
 def png(svg, px, path):
     with tempfile.NamedTemporaryFile("w", suffix=".svg", delete=False) as f: f.write(svg)
     try: subprocess.run(["rsvg-convert", "-w", str(px), "-h", str(px), "-o", path, f.name], check=True)
@@ -85,6 +103,19 @@ def main():
     ico([(px, made[px]) for px in (16, 32, 48)], os.path.join(PUBLIC, "favicon.ico"))
     open(os.path.join(PUBLIC, "favicon.svg"), "w").write(icon(32))
     for name, px in (("favicon-32.png", 32), ("apple-touch-icon.png", 180)): open(os.path.join(PUBLIC, name), "wb").write(open(made[px], "rb").read())
+
+    # The full site wordmark becomes canonical; the more abstract v3 study
+    # remains available but is intentionally not used as the favicon.
+    brand = {}
+    for px in (16, 32, 48, 180):
+        brand[px] = os.path.join(PUBLIC, f"futuro-logo-v1-{px}.png")
+        png(logo_icon(px), px, brand[px])
+    ico([(px, brand[px]) for px in (16, 32, 48)], os.path.join(PUBLIC, "futuro-logo-v1.ico"))
+    open(os.path.join(PUBLIC, "futuro-logo-v1.svg"), "w").write(logo_icon(32))
+    ico([(px, brand[px]) for px in (16, 32, 48)], os.path.join(PUBLIC, "favicon.ico"))
+    open(os.path.join(PUBLIC, "favicon.svg"), "w").write(logo_icon(32))
+    for name, px in (("favicon-32.png", 32), ("apple-touch-icon.png", 180)):
+        open(os.path.join(PUBLIC, name), "wb").write(open(brand[px], "rb").read())
     print("icons written to", PUBLIC)
 
 

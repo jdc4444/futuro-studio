@@ -5,16 +5,17 @@ export const metadata: Metadata = {
   title: 'FUTURO',
   description: 'futuro — brooklyn, new york.',
   icons: {
-    // butterflies in squares, after the opening animation; each size is a drawing of its own (scripts/make-icons.py)
+    // The opening screen's clean all-caps FUTURO wordmark. Each fallback size
+    // is drawn independently by scripts/make-icons.py.
     icon: [
-      { url: '/futuro-icon-v3.ico', type: 'image/x-icon', sizes: '16x16 32x32 48x48' },
-      { url: '/futuro-icon-v3.svg', type: 'image/svg+xml', sizes: 'any' },
-      { url: '/futuro-icon-v3-16.png', type: 'image/png', sizes: '16x16' },
-      { url: '/futuro-icon-v3-32.png', type: 'image/png', sizes: '32x32' },
-      { url: '/futuro-icon-v3-48.png', type: 'image/png', sizes: '48x48' },
+      { url: '/futuro-logo-v1.ico', type: 'image/x-icon', sizes: '16x16 32x32 48x48' },
+      { url: '/futuro-logo-v1.svg', type: 'image/svg+xml', sizes: 'any' },
+      { url: '/futuro-logo-v1-16.png', type: 'image/png', sizes: '16x16' },
+      { url: '/futuro-logo-v1-32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/futuro-logo-v1-48.png', type: 'image/png', sizes: '48x48' },
     ],
-    shortcut: '/futuro-icon-v3.ico',
-    apple: { url: '/futuro-icon-v3-180.png', sizes: '180x180' },
+    shortcut: '/futuro-logo-v1.ico',
+    apple: { url: '/futuro-logo-v1-180.png', sizes: '180x180' },
   },
 };
 
