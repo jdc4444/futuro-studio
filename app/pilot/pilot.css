@@ -56,10 +56,10 @@ html:has(.futuro-pilot),html:has(.futuro-pilot) body{height:100%;overflow:hidden
 .futuro-pilot .light-motion-drag:active{cursor:grabbing}
 .futuro-pilot[data-view=home][data-pilot-open=true] .light-motion-art{visibility:hidden}
 .futuro-pilot[data-view=home][data-pilot-intro=false] .phrases{display:none}
-/* About and Contact sit directly on the still-playing backdrop. The hero's
-   Light sculpture is a separate black iframe, so it must leave the stack
-   altogether outside Home instead of becoming a black panel behind the copy. */
-.futuro-pilot:not([data-view=home]) .futuro-hero{display:none}
+/* About and Contact keep the sculpture's square outline over the playing
+   footage. Screen blending makes the iframe's black field disappear while
+   retaining its light drawing. */
+.futuro-pilot:not([data-view=home]) .futuro-hero{display:block;pointer-events:none;mix-blend-mode:screen}
 .futuro-pilot .futuro-info-copy,.futuro-pilot .futuro-contact-form{pointer-events:auto}
 .pilot-details .futuro-resume{min-height:100svh}
 .pilot-details{outline:none;--futuro-background:#fff;--futuro-foreground:#111;--futuro-muted:#73736e;--futuro-line:rgba(5,5,5,.2);--futuro-underline:rgba(5,5,5,.38);background:#fff;color:#111;color-scheme:light}
