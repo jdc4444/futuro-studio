@@ -19,11 +19,12 @@ html:has(.futuro-pilot),html:has(.futuro-pilot) body{height:100%;overflow:hidden
 .futuro-backdrop-note{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:4;margin:0;padding:8px 12px;background:rgba(0,0,0,.6);color:#fff;font:400 12px Raleway,sans-serif;letter-spacing:.02em}
 .futuro-backdrop::after{content:'';position:absolute;inset:0;z-index:3;background:linear-gradient(to bottom,rgba(0,0,0,.34),rgba(0,0,0,.08) 22%,rgba(0,0,0,.08) 78%,rgba(0,0,0,.34))}
 .futuro-pilot[data-backdrop=true] .pilot-intro{background:transparent}
+.futuro-pilot[data-backdrop=true][data-pilot-intro=true][data-pilot-open=false] .futuro-surface{background:transparent;color:#fff}
 .futuro-pilot[data-backdrop=true][data-view=home][data-pilot-intro=true] .futuro-hero{mix-blend-mode:screen}
-.futuro-pilot[data-backdrop=true][data-view=home][data-pilot-intro=true]>.futuro-information,
-.futuro-pilot[data-backdrop=true][data-view=home][data-pilot-intro=true]>.futuro-contact,
-.futuro-pilot[data-backdrop=true][data-view=home][data-pilot-intro=true]>.futuro-footer,
-.futuro-pilot[data-backdrop=true][data-view=home][data-pilot-intro=true]>.futuro-year{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.65)}
+.futuro-pilot[data-backdrop=true][data-pilot-intro=true][data-pilot-open=false]>.futuro-information,
+.futuro-pilot[data-backdrop=true][data-pilot-intro=true][data-pilot-open=false]>.futuro-contact,
+.futuro-pilot[data-backdrop=true][data-pilot-intro=true][data-pilot-open=false]>.futuro-footer,
+.futuro-pilot[data-backdrop=true][data-pilot-intro=true][data-pilot-open=false]>.futuro-year{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.65)}
 .pilot-preview{position:relative;display:grid;place-items:center;width:100%;height:100svh;overflow:hidden;border:0;padding:80px 6vw;background:#000;color:#fff;cursor:pointer;text-align:center;isolation:isolate}
 .pilot-poster,.pilot-preview-film{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(var(--pilot-preview-scale,1));pointer-events:none}
 .pilot-poster{z-index:-3}
@@ -48,6 +49,7 @@ html:has(.futuro-pilot),html:has(.futuro-pilot) body{height:100%;overflow:hidden
 .futuro-pilot[data-pilot-footage=true]>.futuro-year{mix-blend-mode:normal;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.65)}
 .futuro-overlay{position:absolute;inset:0;z-index:30;height:100svh;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);place-items:center;padding:80px 24px}
 .futuro-pilot .futuro-overlay{position:fixed}
+.futuro-pilot[data-backdrop=true][data-pilot-intro=true][data-pilot-open=false] .futuro-overlay{--futuro-foreground:#fff;--futuro-muted:#ddd;--futuro-input-dot:#aaa;color-scheme:dark;text-shadow:0 1px 8px rgba(0,0,0,.65)}
 .futuro-pilot[data-pilot-footage=true] .futuro-overlay{--futuro-foreground:#fff;--futuro-muted:#ddd;--futuro-input-dot:#aaa;color-scheme:dark;text-shadow:0 1px 8px rgba(0,0,0,.65)}
 .futuro-pilot .light-motion-art{pointer-events:none}
 .futuro-pilot .experience.light-layout-center>.light-motion-drag{grid-area:1/1;position:relative;width:100%;height:100%;min-height:0;z-index:1;pointer-events:auto;cursor:grab;touch-action:pan-y;user-select:none}
