@@ -1,6 +1,10 @@
 import { requireChatGPTUser } from "../chatgpt-auth";
 
-export const dynamic = "force-dynamic";
+// GitHub Pages is the public, static home. Its build cannot run the Studio
+// authentication flow; the private front door remains dynamic on the Studio
+// host, while the public export intentionally contains no Studio links.
+const publicPagesExport = process.env.GITHUB_ACTIONS === "true";
+export const dynamic = publicPagesExport ? "force-static" : "force-dynamic";
 
 const studioApps = [
   ["Plan", "Season One", "Agents, slate, clients and the studio plan.", "https://season-one.josdiazcontreras.chatgpt.site/"],
@@ -12,6 +16,9 @@ const studioApps = [
 ];
 
 export default async function StudioFront() {
+  if (publicPagesExport) {
+    return <main className="studio-front-denied"><p>Futuro Studio is private.</p></main>;
+  }
   const user = await requireChatGPTUser("/front");
   if (user.email.toLowerCase() !== "josdiazcontreras@gmail.com") {
     return <main className="studio-front-denied"><p>Futuro Studio is private.</p></main>;
