@@ -14,7 +14,6 @@ export const projectOrder = new Map([
   '/polymarket-documentary',
   '/bombas-spring',
   '/siberia-hills',
-  '/paracosm',
   '/alignment-documentary',
   '/spotify-hip-hop-classics-1',
   '/lovb-launch',
